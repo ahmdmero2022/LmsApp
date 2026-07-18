@@ -1,0 +1,313 @@
+import 'package:flutter/foundation.dart';
+
+import '../data/database.dart';
+import '../data/repositories.dart';
+import '../data/seed.dart';
+import '../models/app_notification.dart';
+import '../models/course.dart';
+import '../models/enrollment.dart';
+import '../models/lesson.dart';
+import '../models/user.dart';
+
+/// Holds the entire in-memory view of the app and mediates every write to the
+/// persistent database. UI listens to this via `provider`.
+class AppState extends ChangeNotifier {
+  final UserRepository _users;
+  final CourseRepository _courses;
+  final EnrollmentRepository _enrollments;
+  final NotificationRepository _notifications;
+
+  AppState({
+    UserRepository? users,
+    CourseRepository? courses,
+    EnrollmentRepository? enrollments,
+    NotificationRepository? notifications,
+  })  : _users = users ?? UserRepository(AppDatabase.instance),
+        _courses = courses ?? CourseRepository(AppDatabase.instance),
+        _enrollments =
+            enrollments ?? EnrollmentRepository(AppDatabase.instance),
+        _notifications =
+            notifications ?? NotificationRepository(AppDatabase.instance);
+
+  bool _loading = true;
+  bool get loading => _loading;
+
+  AppUser? _currentUser;
+  AppUser? get currentUser => _currentUser;
+  bool get isLoggedIn => _currentUser != null;
+  bool get isInstructor => _currentUser?.role == UserRole.instructor;
+
+  List<AppUser> _allUsers = [];
+  List<Course> _allCourses = [];
+  List<Enrollment> _allEnrollments = [];
+  List<AppNotification> _allNotifications = [];
+
+  List<AppUser> get allUsers => List.unmodifiable(_allUsers);
+  List<Course> get courses => List.unmodifiable(_allCourses);
+
+  Future<void> init() async {
+    _loading = true;
+    notifyListeners();
+    await Seeder(
+      users: _users,
+      courses: _courses,
+      notifications: _notifications,
+    ).seedIfEmpty();
+    await _reloadAll();
+    _loading = false;
+    notifyListeners();
+  }
+
+  Future<void> _reloadAll() async {
+    _allUsers = await _users.getAll();
+    _allCourses = await _courses.getAll();
+    _allEnrollments = await _enrollments.getAll();
+    _allNotifications = await _notifications.getAll();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Auth
+  // ---------------------------------------------------------------------------
+
+  Future<bool> login(String email) async {
+    final user = await _users.findByEmail(email);
+    if (user == null) return false;
+    _currentUser = user;
+    await _reloadAll();
+    notifyListeners();
+    return true;
+  }
+
+  void loginAs(AppUser user) {
+    _currentUser = user;
+    notifyListeners();
+  }
+
+  Future<AppUser?> register({
+    required String name,
+    required String email,
+    required UserRole role,
+  }) async {
+    final existing = await _users.findByEmail(email);
+    if (existing != null) return null;
+    final user = AppUser(
+      id: 'user-${DateTime.now().microsecondsSinceEpoch}',
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      role: role,
+    );
+    await _users.save(user);
+    await _notifications.save(
+      AppNotification(
+        userId: user.id,
+        title: 'Welcome, ${user.name}!',
+        body: role == UserRole.instructor
+            ? 'Create your first course from the "Teaching" tab.'
+            : 'Enroll in a course to start learning.',
+        type: NotificationType.system,
+      ),
+    );
+    _currentUser = user;
+    await _reloadAll();
+    notifyListeners();
+    return user;
+  }
+
+  void logout() {
+    _currentUser = null;
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Enrollments
+  // ---------------------------------------------------------------------------
+
+  List<Enrollment> get myEnrollments {
+    final id = _currentUser?.id;
+    if (id == null) return [];
+    return _allEnrollments.where((e) => e.studentId == id).toList();
+  }
+
+  Enrollment? enrollmentFor(String courseId) {
+    final id = _currentUser?.id;
+    if (id == null) return null;
+    for (final e in _allEnrollments) {
+      if (e.studentId == id && e.courseId == courseId) return e;
+    }
+    return null;
+  }
+
+  bool isEnrolled(String courseId) => enrollmentFor(courseId) != null;
+
+  int enrollmentCount(String courseId) =>
+      _allEnrollments.where((e) => e.courseId == courseId).length;
+
+  Future<void> enroll(Course course) async {
+    final student = _currentUser;
+    if (student == null || isEnrolled(course.id)) return;
+    final enrollment =
+        Enrollment(studentId: student.id, courseId: course.id);
+    await _enrollments.save(enrollment);
+    // Notify the instructor that a new student joined.
+    await _notifications.save(
+      AppNotification(
+        userId: course.instructorId,
+        title: 'New enrollment',
+        body: '${student.name} enrolled in "${course.title}".',
+        type: NotificationType.enrollment,
+        courseId: course.id,
+      ),
+    );
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> unenroll(String courseId) async {
+    final enrollment = enrollmentFor(courseId);
+    if (enrollment == null) return;
+    await _enrollments.delete(enrollment.id);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> toggleLessonComplete(Course course, Lesson lesson) async {
+    final enrollment = enrollmentFor(course.id);
+    if (enrollment == null) return;
+    final completed = List<String>.from(enrollment.completedLessonIds);
+    final wasComplete = enrollment.isCompleted(course.lessons.length);
+    if (completed.contains(lesson.id)) {
+      completed.remove(lesson.id);
+    } else {
+      completed.add(lesson.id);
+    }
+    final updated = enrollment.copyWith(completedLessonIds: completed);
+    await _enrollments.save(updated);
+
+    if (!wasComplete && updated.isCompleted(course.lessons.length)) {
+      final student = _currentUser!;
+      await _notifications.saveAll([
+        AppNotification(
+          userId: student.id,
+          title: 'Course completed! 🎉',
+          body: 'You finished "${course.title}". Great job!',
+          type: NotificationType.progress,
+          courseId: course.id,
+        ),
+        AppNotification(
+          userId: course.instructorId,
+          title: 'Student completed a course',
+          body: '${student.name} completed "${course.title}".',
+          type: NotificationType.progress,
+          courseId: course.id,
+        ),
+      ]);
+    }
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Instructor: course authoring
+  // ---------------------------------------------------------------------------
+
+  List<Course> get myCourses {
+    final id = _currentUser?.id;
+    if (id == null) return [];
+    return _allCourses.where((c) => c.instructorId == id).toList();
+  }
+
+  Future<void> createCourse(Course course) async {
+    await _courses.save(course);
+    // Notify every student a new course is available.
+    final students =
+        _allUsers.where((u) => u.role == UserRole.student).toList();
+    await _notifications.saveAll([
+      for (final s in students)
+        AppNotification(
+          userId: s.id,
+          title: 'New course available',
+          body: '"${course.title}" by ${course.instructorName} was just '
+              'published.',
+          type: NotificationType.newCourse,
+          courseId: course.id,
+        ),
+    ]);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> updateCourse(Course course) async {
+    await _courses.save(course);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> deleteCourse(String courseId) async {
+    await _courses.delete(courseId);
+    for (final e
+        in _allEnrollments.where((e) => e.courseId == courseId).toList()) {
+      await _enrollments.delete(e.id);
+    }
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> addLesson(Course course, Lesson lesson) async {
+    final updated =
+        course.copyWith(lessons: [...course.lessons, lesson]);
+    await _courses.save(updated);
+    // Notify enrolled students about the new lesson.
+    final enrolledStudentIds = _allEnrollments
+        .where((e) => e.courseId == course.id)
+        .map((e) => e.studentId)
+        .toSet();
+    await _notifications.saveAll([
+      for (final sid in enrolledStudentIds)
+        AppNotification(
+          userId: sid,
+          title: 'New lesson added',
+          body: '"${lesson.title}" was added to "${course.title}".',
+          type: NotificationType.newLesson,
+          courseId: course.id,
+        ),
+    ]);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Notifications
+  // ---------------------------------------------------------------------------
+
+  List<AppNotification> get myNotifications {
+    final id = _currentUser?.id;
+    if (id == null) return [];
+    return _allNotifications.where((n) => n.userId == id).toList();
+  }
+
+  int get unreadCount => myNotifications.where((n) => !n.read).length;
+
+  Future<void> markNotificationRead(AppNotification notification) async {
+    if (notification.read) return;
+    await _notifications.save(notification.copyWith(read: true));
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final unread = myNotifications.where((n) => !n.read).toList();
+    if (unread.isEmpty) return;
+    await _notifications
+        .saveAll([for (final n in unread) n.copyWith(read: true)]);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Course? courseById(String? id) {
+    if (id == null) return null;
+    for (final c in _allCourses) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+}
