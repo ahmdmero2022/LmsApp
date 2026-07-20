@@ -7,6 +7,7 @@ import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/enrollment.dart';
 import '../models/lesson.dart';
+import '../models/quiz.dart';
 import '../models/user.dart';
 
 /// Holds the entire in-memory view of the app and mediates every write to the
@@ -268,6 +269,82 @@ class AppState extends ChangeNotifier {
           title: 'New lesson added',
           body: '"${lesson.title}" was added to "${course.title}".',
           type: NotificationType.newLesson,
+          courseId: course.id,
+        ),
+    ]);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Quiz
+  // ---------------------------------------------------------------------------
+
+  /// Percentage required to pass a quiz.
+  static const double quizPassMark = 60;
+
+  Future<void> addQuizQuestion(Course course, QuizQuestion question) async {
+    final wasEmpty = course.quiz.isEmpty;
+    final updated = course.copyWith(quiz: [...course.quiz, question]);
+    await _courses.save(updated);
+    // Alert enrolled students the first time a quiz becomes available.
+    if (wasEmpty) {
+      final enrolledStudentIds = _allEnrollments
+          .where((e) => e.courseId == course.id)
+          .map((e) => e.studentId)
+          .toSet();
+      await _notifications.saveAll([
+        for (final sid in enrolledStudentIds)
+          AppNotification(
+            userId: sid,
+            title: 'Quiz available',
+            body: 'A quiz was added to "${course.title}". Test your knowledge!',
+            type: NotificationType.quiz,
+            courseId: course.id,
+          ),
+      ]);
+    }
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> deleteQuizQuestion(Course course, String questionId) async {
+    final updated = course.copyWith(
+      quiz: course.quiz.where((q) => q.id != questionId).toList(),
+    );
+    await _courses.save(updated);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  /// Records a quiz attempt (keeping the best score) and notifies the student
+  /// and, on a pass, the instructor.
+  Future<void> submitQuiz(Course course, int correct, int total) async {
+    final enrollment = enrollmentFor(course.id);
+    final student = _currentUser;
+    if (enrollment == null || student == null || total == 0) return;
+    final pct = correct / total * 100;
+    final previous = enrollment.quizScore;
+    final best = previous == null || pct > previous ? pct : previous;
+    await _enrollments.save(enrollment.copyWith(quizScore: best));
+
+    final passed = pct >= quizPassMark;
+    await _notifications.saveAll([
+      AppNotification(
+        userId: student.id,
+        title: passed ? 'Quiz passed! 🎯' : 'Quiz completed',
+        body: 'You scored ${pct.round()}% on the "${course.title}" quiz '
+            '($correct/$total correct).',
+        type: NotificationType.quiz,
+        courseId: course.id,
+      ),
+      if (passed)
+        AppNotification(
+          userId: course.instructorId,
+          title: 'Student passed a quiz',
+          body: '${student.name} scored ${pct.round()}% on the '
+              '"${course.title}" quiz.',
+          type: NotificationType.quiz,
           courseId: course.id,
         ),
     ]);
