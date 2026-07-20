@@ -16,13 +16,19 @@ class AppUser {
   final String name;
   final String email;
   final UserRole role;
+  final String? passwordSalt;
+  final String? passwordHash;
 
   const AppUser({
     required this.id,
     required this.name,
     required this.email,
     required this.role,
+    this.passwordSalt,
+    this.passwordHash,
   });
+
+  bool get hasPassword => passwordHash != null && passwordSalt != null;
 
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -31,12 +37,20 @@ class AppUser {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-  AppUser copyWith({String? name, String? email, UserRole? role}) {
+  AppUser copyWith({
+    String? name,
+    String? email,
+    UserRole? role,
+    String? passwordSalt,
+    String? passwordHash,
+  }) {
     return AppUser(
       id: id,
       name: name ?? this.name,
       email: email ?? this.email,
       role: role ?? this.role,
+      passwordSalt: passwordSalt ?? this.passwordSalt,
+      passwordHash: passwordHash ?? this.passwordHash,
     );
   }
 
@@ -46,6 +60,8 @@ class AppUser {
       'name': name,
       'email': email,
       'role': role.name,
+      'passwordSalt': passwordSalt,
+      'passwordHash': passwordHash,
     };
   }
 
@@ -58,6 +74,8 @@ class AppUser {
         (r) => r.name == map['role'],
         orElse: () => UserRole.student,
       ),
+      passwordSalt: map['passwordSalt'] as String?,
+      passwordHash: map['passwordHash'] as String?,
     );
   }
 }

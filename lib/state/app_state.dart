@@ -9,6 +9,7 @@ import '../models/enrollment.dart';
 import '../models/lesson.dart';
 import '../models/quiz.dart';
 import '../models/user.dart';
+import '../utils/password.dart';
 
 /// Holds the entire in-memory view of the app and mediates every write to the
 /// persistent database. UI listens to this via `provider`.
@@ -70,9 +71,12 @@ class AppState extends ChangeNotifier {
   // Auth
   // ---------------------------------------------------------------------------
 
-  Future<bool> login(String email) async {
+  Future<bool> login(String email, String password) async {
     final user = await _users.findByEmail(email);
-    if (user == null) return false;
+    if (user == null || !user.hasPassword) return false;
+    if (!verifyPassword(password, user.passwordSalt!, user.passwordHash!)) {
+      return false;
+    }
     _currentUser = user;
     await _reloadAll();
     notifyListeners();
@@ -87,15 +91,19 @@ class AppState extends ChangeNotifier {
   Future<AppUser?> register({
     required String name,
     required String email,
+    required String password,
     required UserRole role,
   }) async {
     final existing = await _users.findByEmail(email);
     if (existing != null) return null;
+    final salt = generateSalt();
     final user = AppUser(
       id: 'user-${DateTime.now().microsecondsSinceEpoch}',
       name: name.trim(),
       email: email.toLowerCase().trim(),
       role: role,
+      passwordSalt: salt,
+      passwordHash: hashPassword(password, salt),
     );
     await _users.save(user);
     await _notifications.save(

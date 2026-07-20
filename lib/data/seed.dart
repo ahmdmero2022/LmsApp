@@ -3,7 +3,29 @@ import '../models/course.dart';
 import '../models/lesson.dart';
 import '../models/quiz.dart';
 import '../models/user.dart';
+import '../utils/password.dart';
 import 'repositories.dart';
+
+/// Password shared by every seeded demo account.
+const String kDemoPassword = 'password123';
+
+/// Builds a demo [AppUser] with [kDemoPassword] already hashed.
+AppUser _demoUser({
+  required String id,
+  required String name,
+  required String email,
+  required UserRole role,
+}) {
+  final salt = generateSalt();
+  return AppUser(
+    id: id,
+    name: name,
+    email: email,
+    role: role,
+    passwordSalt: salt,
+    passwordHash: hashPassword(kDemoPassword, salt),
+  );
+}
 
 /// Populates the database with a set of demo users, courses and a welcome
 /// notification the first time the app runs (when no users exist yet).
@@ -22,19 +44,19 @@ class Seeder {
     final existing = await users.getAll();
     if (existing.isNotEmpty) return;
 
-    const instructor = AppUser(
+    final instructor = _demoUser(
       id: 'user-instructor-1',
       name: 'Sara Ahmed',
       email: 'sara@lms.dev',
       role: UserRole.instructor,
     );
-    const instructor2 = AppUser(
+    final instructor2 = _demoUser(
       id: 'user-instructor-2',
       name: 'Omar Khaled',
       email: 'omar@lms.dev',
       role: UserRole.instructor,
     );
-    const student = AppUser(
+    final student = _demoUser(
       id: 'user-student-1',
       name: 'Ali Hassan',
       email: 'ali@lms.dev',
