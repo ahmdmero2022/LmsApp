@@ -22,7 +22,20 @@ description: Build, serve, and end-to-end test the Flutter web LMS app (roles, c
 ## Demo accounts (seeded on first run)
 - `sara@lms.dev` / `omar@lms.dev` — Instructors
 - `ali@lms.dev` — Student
-Use the one-tap demo-account buttons on the login screen (no password).
+Use the one-tap demo-account buttons on the login screen (no password). For
+password login/change tests, the demo password is `password123` (see
+`kDemoPassword` in `lib/data/seed.dart`).
+
+## Auth / password testing
+- Password auth: signup requires password + confirm (min 6 chars); login verifies
+  it; storage is salted PBKDF2 (`lib/utils/password.dart`). Login errors are
+  generic ("Incorrect email or password").
+- Change password lives in Profile → "Change password" tile → dialog with
+  current/new/confirm fields (`lib/screens/profile_screen.dart`,
+  `ChangePasswordDialog`).
+- Strongest end-to-end proof that a password change persisted: change it, sign
+  out, confirm the OLD password is rejected, then confirm the NEW password logs
+  in. A no-op/broken change would let the old password still work.
 
 ## Key end-to-end flow that proves the headline features
 1. Login as an instructor (Sara) → Teaching → New course → Publish. This should generate a "New course available" notification for every student.
