@@ -10,6 +10,9 @@ class Enrollment {
   /// Best quiz score achieved, as a percentage (0-100). Null if never taken.
   final double? quizScore;
 
+  /// When the course was first fully completed. Null until completion.
+  final DateTime? completedAt;
+
   Enrollment({
     String? id,
     required this.studentId,
@@ -17,6 +20,7 @@ class Enrollment {
     DateTime? enrolledAt,
     List<String>? completedLessonIds,
     this.quizScore,
+    this.completedAt,
   })  : id = id ?? const Uuid().v4(),
         enrolledAt = enrolledAt ?? DateTime.now(),
         completedLessonIds = completedLessonIds ?? <String>[];
@@ -31,7 +35,11 @@ class Enrollment {
   bool isCompleted(int totalLessons) =>
       totalLessons > 0 && completedLessonIds.length >= totalLessons;
 
-  Enrollment copyWith({List<String>? completedLessonIds, double? quizScore}) {
+  Enrollment copyWith({
+    List<String>? completedLessonIds,
+    double? quizScore,
+    DateTime? completedAt,
+  }) {
     return Enrollment(
       id: id,
       studentId: studentId,
@@ -39,6 +47,7 @@ class Enrollment {
       enrolledAt: enrolledAt,
       completedLessonIds: completedLessonIds ?? this.completedLessonIds,
       quizScore: quizScore ?? this.quizScore,
+      completedAt: completedAt ?? this.completedAt,
     );
   }
 
@@ -50,6 +59,7 @@ class Enrollment {
       'enrolledAt': enrolledAt.toIso8601String(),
       'completedLessonIds': completedLessonIds,
       'quizScore': quizScore,
+      'completedAt': completedAt?.toIso8601String(),
     };
   }
 
@@ -65,6 +75,9 @@ class Enrollment {
           .map((e) => e as String)
           .toList(),
       quizScore: (map['quizScore'] as num?)?.toDouble(),
+      completedAt: map['completedAt'] == null
+          ? null
+          : DateTime.tryParse(map['completedAt'] as String),
     );
   }
 }

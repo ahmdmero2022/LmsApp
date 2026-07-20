@@ -7,6 +7,7 @@ import '../models/lesson.dart';
 import '../models/quiz.dart';
 import '../state/app_state.dart';
 import '../widgets/media_embed.dart';
+import 'certificate_screen.dart';
 import 'quiz_screen.dart';
 
 class CourseDetailScreen extends StatelessWidget {
@@ -87,6 +88,19 @@ class CourseDetailScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text('${(progress * 100).round()}% complete'),
                   const SizedBox(height: 12),
+                  if (enrollment.isCompleted(course.lessons.length)) ...[
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CertificateScreen(courseId: course.id),
+                        ),
+                      ),
+                      icon: const Icon(Icons.workspace_premium),
+                      label: const Text('View certificate'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   OutlinedButton.icon(
                     onPressed: () => state.unenroll(course.id),
                     icon: const Icon(Icons.logout),

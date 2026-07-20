@@ -23,6 +23,17 @@ void main() {
       expect(enrollment.progress(4), 0.5);
       expect(enrollment.isCompleted(2), isTrue);
     });
+
+    test('completedAt round-trips and defaults to null', () {
+      final base = Enrollment(studentId: 's1', courseId: 'c1');
+      expect(base.completedAt, isNull);
+      expect(Enrollment.fromMap(base.toMap()).completedAt, isNull);
+
+      final when = DateTime(2026, 7, 18, 12, 30);
+      final done = base.copyWith(completedAt: when);
+      final restored = Enrollment.fromMap(done.toMap());
+      expect(restored.completedAt, when);
+    });
   });
 
   group('Course serialization', () {
