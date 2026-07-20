@@ -11,6 +11,7 @@ class Course {
   final String instructorId;
   final String instructorName;
   final int colorValue;
+  final String? imageUrl;
   final List<Lesson> lessons;
   final List<QuizQuestion> quiz;
   final DateTime createdAt;
@@ -23,6 +24,7 @@ class Course {
     required this.instructorId,
     required this.instructorName,
     required this.colorValue,
+    this.imageUrl,
     List<Lesson>? lessons,
     List<QuizQuestion>? quiz,
     DateTime? createdAt,
@@ -41,6 +43,7 @@ class Course {
     String? description,
     String? category,
     int? colorValue,
+    String? imageUrl,
     List<Lesson>? lessons,
     List<QuizQuestion>? quiz,
   }) {
@@ -52,6 +55,7 @@ class Course {
       instructorId: instructorId,
       instructorName: instructorName,
       colorValue: colorValue ?? this.colorValue,
+      imageUrl: imageUrl ?? this.imageUrl,
       lessons: lessons ?? this.lessons,
       quiz: quiz ?? this.quiz,
       createdAt: createdAt,
@@ -67,6 +71,7 @@ class Course {
       'instructorId': instructorId,
       'instructorName': instructorName,
       'colorValue': colorValue,
+      'imageUrl': imageUrl,
       'lessons': lessons.map((l) => l.toMap()).toList(),
       'quiz': quiz.map((q) => q.toMap()).toList(),
       'createdAt': createdAt.toIso8601String(),
@@ -82,6 +87,7 @@ class Course {
       instructorId: map['instructorId'] as String,
       instructorName: map['instructorName'] as String? ?? 'Unknown',
       colorValue: (map['colorValue'] as num?)?.toInt() ?? 0xFF6750A4,
+      imageUrl: map['imageUrl'] as String?,
       lessons: (map['lessons'] as List<dynamic>? ?? [])
           .map((e) => Lesson.fromMap(Map<String, dynamic>.from(e as Map)))
           .toList(),

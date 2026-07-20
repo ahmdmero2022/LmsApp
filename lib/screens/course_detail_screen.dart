@@ -7,6 +7,7 @@ import '../models/lesson.dart';
 import '../models/quiz.dart';
 import '../models/review.dart';
 import '../state/app_state.dart';
+import '../utils/course_images.dart';
 import '../widgets/media_embed.dart';
 import '../widgets/star_rating.dart';
 import 'certificate_screen.dart';
@@ -44,6 +45,33 @@ class CourseDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 180,
+              width: double.infinity,
+              child: Image.network(
+                courseImageUrl(course),
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : ColoredBox(color: color.withValues(alpha: 0.12)),
+                errorBuilder: (context, error, stackTrace) => DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color,
+                        Color.lerp(color, Colors.black, 0.28) ?? color,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
