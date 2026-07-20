@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../models/course.dart';
+import 'star_rating.dart';
 
 class CourseCard extends StatelessWidget {
   final Course course;
   final VoidCallback onTap;
   final double? progress;
   final Widget? trailing;
+  final double? rating;
+  final int ratingCount;
 
   const CourseCard({
     super.key,
@@ -14,6 +17,8 @@ class CourseCard extends StatelessWidget {
     required this.onTap,
     this.progress,
     this.trailing,
+    this.rating,
+    this.ratingCount = 0,
   });
 
   @override
@@ -113,6 +118,25 @@ class CourseCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  if (rating != null)
+                    Row(
+                      children: [
+                        StarRating(rating: rating!),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${rating!.toStringAsFixed(1)} ($ratingCount)',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      'No reviews yet',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
                   if (progress != null) ...[
                     const SizedBox(height: 12),
                     ClipRRect(

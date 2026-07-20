@@ -21,6 +21,8 @@ class NotificationsScreen extends StatelessWidget {
         return Icons.emoji_events;
       case NotificationType.quiz:
         return Icons.quiz;
+      case NotificationType.review:
+        return Icons.reviews;
       case NotificationType.system:
         return Icons.info_outline;
     }
@@ -38,6 +40,8 @@ class NotificationsScreen extends StatelessWidget {
         return const Color(0xFFEF6C00);
       case NotificationType.quiz:
         return const Color(0xFF6A1B9A);
+      case NotificationType.review:
+        return const Color(0xFFF9A825);
       case NotificationType.system:
         return const Color(0xFF546E7A);
     }

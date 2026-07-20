@@ -19,6 +19,8 @@ class AppDatabase {
       stringMapStoreFactory.store('enrollments');
   final StoreRef<String, Map<String, Object?>> notifications =
       stringMapStoreFactory.store('notifications');
+  final StoreRef<String, Map<String, Object?>> reviews =
+      stringMapStoreFactory.store('reviews');
 
   Future<Database> get database async {
     return _db ??= await databaseFactoryWeb.openDatabase(_dbName);

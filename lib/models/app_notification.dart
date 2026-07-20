@@ -1,6 +1,14 @@
 import 'package:uuid/uuid.dart';
 
-enum NotificationType { enrollment, newCourse, newLesson, progress, quiz, system }
+enum NotificationType {
+  enrollment,
+  newCourse,
+  newLesson,
+  progress,
+  quiz,
+  review,
+  system,
+}
 
 class AppNotification {
   final String id;
