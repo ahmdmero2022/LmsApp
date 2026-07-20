@@ -222,7 +222,7 @@ class AppState extends ChangeNotifier {
     }
     var updated = enrollment.copyWith(completedLessonIds: completed);
     final nowComplete = updated.isCompleted(course.lessons.length);
-    if (!wasComplete && nowComplete) {
+    if (!wasComplete && nowComplete && updated.completedAt == null) {
       updated = updated.copyWith(completedAt: DateTime.now());
     }
     await _enrollments.save(updated);
