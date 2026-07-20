@@ -50,11 +50,13 @@ class AppState extends ChangeNotifier {
   Future<void> init() async {
     _loading = true;
     notifyListeners();
-    await Seeder(
+    final seeder = Seeder(
       users: _users,
       courses: _courses,
       notifications: _notifications,
-    ).seedIfEmpty();
+    );
+    await seeder.seedIfEmpty();
+    await seeder.backfillDemoPasswords();
     await _reloadAll();
     _loading = false;
     notifyListeners();

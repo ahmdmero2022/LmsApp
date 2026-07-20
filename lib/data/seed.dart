@@ -9,6 +9,9 @@ import 'repositories.dart';
 /// Password shared by every seeded demo account.
 const String kDemoPassword = 'password123';
 
+/// Emails of the seeded demo accounts.
+const List<String> kDemoEmails = ['sara@lms.dev', 'omar@lms.dev', 'ali@lms.dev'];
+
 /// Builds a demo [AppUser] with [kDemoPassword] already hashed.
 AppUser _demoUser({
   required String id,
@@ -39,6 +42,24 @@ class Seeder {
     required this.courses,
     required this.notifications,
   });
+
+  /// Backfills a hashed [kDemoPassword] onto demo accounts that were seeded
+  /// before password auth existed, so the advertised demo password works for
+  /// installations created before this feature.
+  Future<void> backfillDemoPasswords() async {
+    for (final email in kDemoEmails) {
+      final user = await users.findByEmail(email);
+      if (user != null && !user.hasPassword) {
+        final salt = generateSalt();
+        await users.save(
+          user.copyWith(
+            passwordSalt: salt,
+            passwordHash: hashPassword(kDemoPassword, salt),
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> seedIfEmpty() async {
     final existing = await users.getAll();
