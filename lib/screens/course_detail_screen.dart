@@ -33,7 +33,7 @@ class CourseDetailScreen extends StatelessWidget {
       appBar: AppBar(title: Text(course.title)),
       floatingActionButton: isOwner
           ? FloatingActionButton.extended(
-              onPressed: () => _addLesson(context, course),
+              onPressed: () => showLessonDialog(context, course),
               icon: const Icon(Icons.add),
               label: const Text('Add lesson'),
             )
@@ -131,6 +131,7 @@ class CourseDetailScreen extends StatelessWidget {
               lesson: course.lessons[i],
               index: i,
               enrolled: enrolled,
+              isOwner: isOwner,
               completed: enrollment?.completedLessonIds
                       .contains(course.lessons[i].id) ??
                   false,
@@ -147,19 +148,31 @@ class CourseDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _addLesson(BuildContext context, Course course) async {
-    final state = context.read<AppState>();
-    final titleCtrl = TextEditingController();
-    final contentCtrl = TextEditingController();
-    final urlCtrl = TextEditingController();
-    final durationCtrl = TextEditingController(text: '10');
-    var type = LessonType.text;
+}
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add lesson'),
+/// Shows the create/edit lesson dialog. When [existing] is provided the dialog
+/// pre-fills its fields and saves via `updateLesson`; otherwise it adds a new
+/// lesson.
+Future<void> showLessonDialog(
+  BuildContext context,
+  Course course, {
+  Lesson? existing,
+}) async {
+  final state = context.read<AppState>();
+  final isEdit = existing != null;
+  final titleCtrl = TextEditingController(text: existing?.title ?? '');
+  final contentCtrl = TextEditingController(text: existing?.content ?? '');
+  final urlCtrl = TextEditingController(text: existing?.url ?? '');
+  final durationCtrl = TextEditingController(
+    text: '${existing?.durationMinutes ?? 10}',
+  );
+  var type = existing?.type ?? LessonType.text;
+
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => AlertDialog(
+        title: Text(isEdit ? 'Edit lesson' : 'Add lesson'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -235,27 +248,29 @@ class CourseDetailScreen extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Add'),
+              child: Text(isEdit ? 'Save' : 'Add'),
             ),
           ],
         ),
       ),
     );
 
-    final needsUrl = type != LessonType.text;
-    if (result == true &&
-        titleCtrl.text.trim().isNotEmpty &&
-        (!needsUrl || urlCtrl.text.trim().isNotEmpty)) {
-      await state.addLesson(
-        course,
-        Lesson(
-          title: titleCtrl.text.trim(),
-          type: type,
-          content: contentCtrl.text.trim(),
-          url: urlCtrl.text.trim(),
-          durationMinutes: int.tryParse(durationCtrl.text.trim()) ?? 10,
-        ),
-      );
+  final needsUrl = type != LessonType.text;
+  if (result == true &&
+      titleCtrl.text.trim().isNotEmpty &&
+      (!needsUrl || urlCtrl.text.trim().isNotEmpty)) {
+    final lesson = Lesson(
+      id: existing?.id,
+      title: titleCtrl.text.trim(),
+      type: type,
+      content: contentCtrl.text.trim(),
+      url: urlCtrl.text.trim(),
+      durationMinutes: int.tryParse(durationCtrl.text.trim()) ?? 10,
+    );
+    if (isEdit) {
+      await state.updateLesson(course, lesson);
+    } else {
+      await state.addLesson(course, lesson);
     }
   }
 }
@@ -265,6 +280,7 @@ class _LessonTile extends StatelessWidget {
   final Lesson lesson;
   final int index;
   final bool enrolled;
+  final bool isOwner;
   final bool completed;
 
   const _LessonTile({
@@ -272,6 +288,7 @@ class _LessonTile extends StatelessWidget {
     required this.lesson,
     required this.index,
     required this.enrolled,
+    required this.isOwner,
     required this.completed,
   });
 
@@ -311,6 +328,25 @@ class _LessonTile extends StatelessWidget {
             Text('${lesson.type.label} · ${lesson.durationMinutes} min'),
           ],
         ),
+        trailing: isOwner
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Edit lesson',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () =>
+                        showLessonDialog(context, course, existing: lesson),
+                  ),
+                  IconButton(
+                    tooltip: 'Delete lesson',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmDelete(context),
+                  ),
+                  const Icon(Icons.expand_more),
+                ],
+              )
+            : null,
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -360,6 +396,30 @@ class _LessonTile extends StatelessWidget {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final state = context.read<AppState>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete lesson?'),
+        content: Text('This will remove "${lesson.title}" from the course.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await state.deleteLesson(course, lesson.id);
+    }
+  }
 }
 
 class _QuizSection extends StatelessWidget {
@@ -377,7 +437,6 @@ class _QuizSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.read<AppState>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,12 +478,25 @@ class _QuizSection extends StatelessWidget {
                       subtitle: Text(
                         'Answer: ${course.quiz[i].options[course.quiz[i].correctIndex]}',
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => state.deleteQuizQuestion(
-                          course,
-                          course.quiz[i].id,
-                        ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Edit question',
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => showQuestionDialog(
+                              context,
+                              course,
+                              existing: course.quiz[i],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete question',
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () =>
+                                _confirmDeleteQuestion(context, course.quiz[i]),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -472,7 +544,7 @@ class _QuizSection extends StatelessWidget {
         if (isOwner) ...[
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => _addQuestion(context, course),
+            onPressed: () => showQuestionDialog(context, course),
             icon: const Icon(Icons.add),
             label: const Text('Add question'),
           ),
@@ -481,18 +553,59 @@ class _QuizSection extends StatelessWidget {
     );
   }
 
-  Future<void> _addQuestion(BuildContext context, Course course) async {
+  Future<void> _confirmDeleteQuestion(
+    BuildContext context,
+    QuizQuestion question,
+  ) async {
     final state = context.read<AppState>();
-    final promptCtrl = TextEditingController();
-    final optionCtrls =
-        List.generate(4, (_) => TextEditingController());
-    var correct = 0;
-
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add question'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete question?'),
+        content: Text('This will remove "${question.prompt}" from the quiz.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await state.deleteQuizQuestion(course, question.id);
+    }
+  }
+}
+
+/// Shows the create/edit quiz-question dialog. When [existing] is provided the
+/// dialog pre-fills its fields and saves via `updateQuizQuestion`.
+Future<void> showQuestionDialog(
+  BuildContext context,
+  Course course, {
+  QuizQuestion? existing,
+}) async {
+  final state = context.read<AppState>();
+  final isEdit = existing != null;
+  final promptCtrl = TextEditingController(text: existing?.prompt ?? '');
+  final optionCtrls = List.generate(
+    4,
+    (i) => TextEditingController(
+      text: (existing != null && i < existing.options.length)
+          ? existing.options[i]
+          : '',
+    ),
+  );
+  var correct = existing?.correctIndex ?? 0;
+
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => AlertDialog(
+        title: Text(isEdit ? 'Edit question' : 'Add question'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -540,28 +653,29 @@ class _QuizSection extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Add'),
+              child: Text(isEdit ? 'Save' : 'Add'),
             ),
           ],
         ),
       ),
     );
 
-    final options =
-        optionCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
-    if (ok == true &&
-        promptCtrl.text.trim().isNotEmpty &&
-        options.length >= 2 &&
-        optionCtrls[correct].text.trim().isNotEmpty) {
-      await state.addQuizQuestion(
-        course,
-        QuizQuestion(
-          prompt: promptCtrl.text.trim(),
-          options: options,
-          correctIndex:
-              options.indexOf(optionCtrls[correct].text.trim()),
-        ),
-      );
+  final options =
+      optionCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+  if (ok == true &&
+      promptCtrl.text.trim().isNotEmpty &&
+      options.length >= 2 &&
+      optionCtrls[correct].text.trim().isNotEmpty) {
+    final question = QuizQuestion(
+      id: existing?.id,
+      prompt: promptCtrl.text.trim(),
+      options: options,
+      correctIndex: options.indexOf(optionCtrls[correct].text.trim()),
+    );
+    if (isEdit) {
+      await state.updateQuizQuestion(course, question);
+    } else {
+      await state.addQuizQuestion(course, question);
     }
   }
 }
