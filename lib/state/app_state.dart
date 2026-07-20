@@ -129,6 +129,35 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Changes the signed-in user's password after verifying [currentPassword].
+  /// Returns [ChangePasswordResult.success] on success, or a specific failure
+  /// reason otherwise.
+  Future<ChangePasswordResult> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _currentUser;
+    if (user == null) return ChangePasswordResult.notSignedIn;
+    if (user.hasPassword &&
+        !verifyPassword(
+          currentPassword,
+          user.passwordSalt!,
+          user.passwordHash!,
+        )) {
+      return ChangePasswordResult.wrongCurrentPassword;
+    }
+    final salt = generateSalt();
+    final updated = user.copyWith(
+      passwordSalt: salt,
+      passwordHash: hashPassword(newPassword, salt),
+    );
+    await _users.save(updated);
+    _currentUser = updated;
+    await _reloadAll();
+    notifyListeners();
+    return ChangePasswordResult.success;
+  }
+
   // ---------------------------------------------------------------------------
   // Enrollments
   // ---------------------------------------------------------------------------
@@ -442,4 +471,11 @@ class AppState extends ChangeNotifier {
     }
     return null;
   }
+}
+
+/// Outcome of an [AppState.changePassword] attempt.
+enum ChangePasswordResult {
+  success,
+  wrongCurrentPassword,
+  notSignedIn,
 }

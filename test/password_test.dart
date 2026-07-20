@@ -56,5 +56,39 @@ void main() {
       final restored = AppUser.fromMap(user.toMap());
       expect(restored.hasPassword, isFalse);
     });
+
+    test('changing a password invalidates the old one', () {
+      final oldSalt = generateSalt();
+      final user = AppUser(
+        id: 'u3',
+        name: 'Changer',
+        email: 'changer@lms.dev',
+        role: UserRole.student,
+        passwordSalt: oldSalt,
+        passwordHash: hashPassword('oldpass1', oldSalt),
+      );
+      // Verify the old credential works before the change.
+      expect(
+        verifyPassword('oldpass1', user.passwordSalt!, user.passwordHash!),
+        isTrue,
+      );
+
+      // Simulate AppState.changePassword: new salt + hash of the new password.
+      final newSalt = generateSalt();
+      final updated = user.copyWith(
+        passwordSalt: newSalt,
+        passwordHash: hashPassword('newpass1', newSalt),
+      );
+
+      expect(
+        verifyPassword('newpass1', updated.passwordSalt!, updated.passwordHash!),
+        isTrue,
+      );
+      expect(
+        verifyPassword('oldpass1', updated.passwordSalt!, updated.passwordHash!),
+        isFalse,
+      );
+      expect(updated.passwordSalt, isNot(equals(oldSalt)));
+    });
   });
 }
