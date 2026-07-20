@@ -1,6 +1,7 @@
 import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/lesson.dart';
+import '../models/quiz.dart';
 import '../models/user.dart';
 import 'repositories.dart';
 
@@ -75,6 +76,38 @@ class Seeder {
               'across your widget tree efficiently.',
           durationMinutes: 20,
         ),
+        Lesson(
+          title: 'Intro Video: Flutter in 100 seconds',
+          type: LessonType.video,
+          url: 'https://www.youtube.com/watch?v=lHhRhPV--G0',
+          content: 'A quick overview of what Flutter is and why it exists.',
+          durationMinutes: 3,
+        ),
+        Lesson(
+          title: 'Reference: Dart cheat sheet (PDF)',
+          type: LessonType.pdf,
+          url:
+              'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+          content: 'Keep this handy while you code.',
+          durationMinutes: 5,
+        ),
+      ],
+      quiz: [
+        QuizQuestion(
+          prompt: 'What language are Flutter apps written in?',
+          options: ['Dart', 'JavaScript', 'Kotlin', 'Swift'],
+          correctIndex: 0,
+        ),
+        QuizQuestion(
+          prompt: 'In Flutter, almost everything on screen is a…',
+          options: ['Widget', 'Component', 'Fragment', 'Template'],
+          correctIndex: 0,
+        ),
+        QuizQuestion(
+          prompt: 'Which package is commonly used for state management?',
+          options: ['provider', 'express', 'redux-saga', 'axios'],
+          correctIndex: 0,
+        ),
       ],
     );
 
@@ -101,6 +134,18 @@ class Seeder {
               'Key-value, document and column stores — when and why to use '
               'them.',
           durationMinutes: 14,
+        ),
+      ],
+      quiz: [
+        QuizQuestion(
+          prompt: 'Which key uniquely identifies a row in a table?',
+          options: ['Primary key', 'Foreign key', 'Index', 'View'],
+          correctIndex: 0,
+        ),
+        QuizQuestion(
+          prompt: 'MongoDB is an example of which kind of database?',
+          options: ['Document store', 'Relational', 'Graph', 'Spreadsheet'],
+          correctIndex: 0,
         ),
       ],
     );

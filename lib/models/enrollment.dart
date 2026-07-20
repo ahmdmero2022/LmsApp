@@ -7,15 +7,21 @@ class Enrollment {
   final DateTime enrolledAt;
   final List<String> completedLessonIds;
 
+  /// Best quiz score achieved, as a percentage (0-100). Null if never taken.
+  final double? quizScore;
+
   Enrollment({
     String? id,
     required this.studentId,
     required this.courseId,
     DateTime? enrolledAt,
     List<String>? completedLessonIds,
+    this.quizScore,
   })  : id = id ?? const Uuid().v4(),
         enrolledAt = enrolledAt ?? DateTime.now(),
         completedLessonIds = completedLessonIds ?? <String>[];
+
+  bool get quizAttempted => quizScore != null;
 
   double progress(int totalLessons) {
     if (totalLessons == 0) return 0;
@@ -25,13 +31,14 @@ class Enrollment {
   bool isCompleted(int totalLessons) =>
       totalLessons > 0 && completedLessonIds.length >= totalLessons;
 
-  Enrollment copyWith({List<String>? completedLessonIds}) {
+  Enrollment copyWith({List<String>? completedLessonIds, double? quizScore}) {
     return Enrollment(
       id: id,
       studentId: studentId,
       courseId: courseId,
       enrolledAt: enrolledAt,
       completedLessonIds: completedLessonIds ?? this.completedLessonIds,
+      quizScore: quizScore ?? this.quizScore,
     );
   }
 
@@ -42,6 +49,7 @@ class Enrollment {
       'courseId': courseId,
       'enrolledAt': enrolledAt.toIso8601String(),
       'completedLessonIds': completedLessonIds,
+      'quizScore': quizScore,
     };
   }
 
@@ -56,6 +64,7 @@ class Enrollment {
       completedLessonIds: (map['completedLessonIds'] as List<dynamic>? ?? [])
           .map((e) => e as String)
           .toList(),
+      quizScore: (map['quizScore'] as num?)?.toDouble(),
     );
   }
 }

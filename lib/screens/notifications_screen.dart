@@ -19,6 +19,8 @@ class NotificationsScreen extends StatelessWidget {
         return Icons.playlist_add;
       case NotificationType.progress:
         return Icons.emoji_events;
+      case NotificationType.quiz:
+        return Icons.quiz;
       case NotificationType.system:
         return Icons.info_outline;
     }
