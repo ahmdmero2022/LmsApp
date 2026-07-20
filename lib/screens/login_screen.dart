@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/seed.dart';
 import '../models/user.dart';
 import '../state/app_state.dart';
 
@@ -96,6 +97,9 @@ class _LoginCardState extends State<_LoginCard> {
   bool _registerMode = false;
   final _emailCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscure = true;
   UserRole _role = UserRole.student;
   String? _error;
   bool _busy = false;
@@ -104,7 +108,16 @@ class _LoginCardState extends State<_LoginCard> {
   void dispose() {
     _emailCtrl.dispose();
     _nameCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
+  }
+
+  void _fail(String message) {
+    setState(() {
+      _error = message;
+      _busy = false;
+    });
   }
 
   Future<void> _submit() async {
@@ -114,39 +127,41 @@ class _LoginCardState extends State<_LoginCard> {
       _busy = true;
     });
     final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
     if (email.isEmpty) {
-      setState(() {
-        _error = 'Enter an email.';
-        _busy = false;
-      });
+      _fail('Enter an email.');
+      return;
+    }
+    if (password.isEmpty) {
+      _fail('Enter a password.');
       return;
     }
     if (_registerMode) {
       if (_nameCtrl.text.trim().isEmpty) {
-        setState(() {
-          _error = 'Enter your name.';
-          _busy = false;
-        });
+        _fail('Enter your name.');
+        return;
+      }
+      if (password.length < 6) {
+        _fail('Password must be at least 6 characters.');
+        return;
+      }
+      if (_confirmCtrl.text != password) {
+        _fail('Passwords do not match.');
         return;
       }
       final user = await state.register(
         name: _nameCtrl.text,
         email: email,
+        password: password,
         role: _role,
       );
       if (user == null && mounted) {
-        setState(() {
-          _error = 'An account with that email already exists.';
-          _busy = false;
-        });
+        _fail('An account with that email already exists.');
       }
     } else {
-      final ok = await state.login(email);
+      final ok = await state.login(email, password);
       if (!ok && mounted) {
-        setState(() {
-          _error = 'No account found. Try a demo account or sign up.';
-          _busy = false;
-        });
+        _fail('Incorrect email or password.');
       }
     }
   }
@@ -189,7 +204,33 @@ class _LoginCardState extends State<_LoginCard> {
               ),
               onSubmitted: (_) => _submit(),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
             if (_registerMode) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _confirmCtrl,
+                obscureText: _obscure,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm password',
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+                onSubmitted: (_) => _submit(),
+              ),
               const SizedBox(height: 12),
               SegmentedButton<UserRole>(
                 segments: const [
@@ -225,6 +266,14 @@ class _LoginCardState extends State<_LoginCard> {
               Text(
                 'Demo accounts',
                 style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'One-tap sign in, or use password "$kDemoPassword".',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 8),
               ...state.allUsers.map(
