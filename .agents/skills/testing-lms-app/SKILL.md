@@ -50,6 +50,21 @@ password login/change tests, the demo password is `password123` (see
   NOT appear before 100%, and the exported tab must show the correct identity
   fields (a broken data wiring would show blank/wrong name/course).
 
+## Course ratings & reviews
+- Only an **enrolled** student (not the course owner) sees a "Leave a review" /
+  "Edit your review" button in the course detail's `_ReviewsSection`
+  (`lib/screens/course_detail_screen.dart`); `AppState.saveReview` guards on
+  `isEnrolled`. There is one review per (student, course) — re-reviewing updates
+  in place (upsert), it does NOT append.
+- Average rating + count show on `CourseCard` (Catalog + My Learning) and in the
+  reviews section header; `averageRating` returns null → card shows "No reviews
+  yet". The review dialog's Submit is disabled until a star is picked.
+- Adversarial test: use a course with NO seeded reviews (e.g. "UI/UX Design
+  Principles") so the average only appears if the write works. Verify: card "No
+  reviews yet" → enroll → leave 4★ → header "Reviews (1)" + 4.0 avg → edit rating
+  → count stays "Reviews (1)" and avg recomputes → catalog card shows the new
+  average. Seeded reviews exist on Flutter (4.5, 2) and Databases 101 (4.0, 1).
+
 ## Key end-to-end flow that proves the headline features
 1. Login as an instructor (Sara) → Teaching → New course → Publish. This should generate a "New course available" notification for every student.
 2. Sign out, login as a student (Ali) → Notifications shows the unread badge + the cross-user notification. (Proves notifications + that the DB write from one user is read by another session.)
