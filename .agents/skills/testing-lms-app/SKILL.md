@@ -37,6 +37,19 @@ password login/change tests, the demo password is `password123` (see
   out, confirm the OLD password is rejected, then confirm the NEW password logs
   in. A no-op/broken change would let the old password still work.
 
+## Completion certificates
+- A "View certificate" button appears in the course detail's enrolled panel ONLY
+  when `enrollment.isCompleted(course.lessons.length)` is true (100%) — see
+  `lib/screens/course_detail_screen.dart`. Verify it is absent at <100%.
+- The certificate (`lib/screens/certificate_screen.dart`) shows student name,
+  course title, instructor, and completion date (`Enrollment.completedAt`,
+  stamped once on first completion).
+- "Print / Save as PDF" is web-only (`canExportCertificate`); on web it opens a
+  NEW browser tab with a standalone styled HTML certificate + Print button
+  (`lib/utils/certificate_export_web.dart`). Adversarial check: the button must
+  NOT appear before 100%, and the exported tab must show the correct identity
+  fields (a broken data wiring would show blank/wrong name/course).
+
 ## Key end-to-end flow that proves the headline features
 1. Login as an instructor (Sara) → Teaching → New course → Publish. This should generate a "New course available" notification for every student.
 2. Sign out, login as a student (Ali) → Notifications shows the unread badge + the cross-user notification. (Proves notifications + that the DB write from one user is read by another session.)
