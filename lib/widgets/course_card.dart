@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/course.dart';
+import '../utils/course_images.dart';
 import 'star_rating.dart';
 
 class CourseCard extends StatelessWidget {
@@ -21,51 +22,88 @@ class CourseCard extends StatelessWidget {
     this.ratingCount = 0,
   });
 
+  Widget _gradient(Color color) => DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color,
+              Color.lerp(color, Colors.black, 0.28) ?? color,
+            ],
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final color = Color(course.colorValue);
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 96,
+            SizedBox(
+              height: 120,
               width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color,
-                    Color.lerp(color, Colors.black, 0.28) ?? color,
-                  ],
-                ),
-              ),
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.25),
-                    child: const Icon(Icons.play_lesson, color: Colors.white),
+                  Image.network(
+                    courseImageUrl(course),
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return _gradient(color);
+                    },
+                    errorBuilder: (context, error, stackTrace) =>
+                        _gradient(color),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      course.category.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        letterSpacing: 0.8,
+                  // Dark scrim so the white category text stays legible.
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.10),
+                          Colors.black.withValues(alpha: 0.55),
+                        ],
                       ),
                     ),
                   ),
-                  ?trailing,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Colors.white.withValues(alpha: 0.25),
+                          child: const Icon(Icons.play_lesson,
+                              color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            course.category.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              letterSpacing: 0.8,
+                              shadows: [
+                                Shadow(blurRadius: 4, color: Colors.black54),
+                              ],
+                            ),
+                          ),
+                        ),
+                        ?trailing,
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

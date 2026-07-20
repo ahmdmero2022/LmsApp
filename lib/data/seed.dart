@@ -100,6 +100,9 @@ class Seeder {
       instructorId: instructor.id,
       instructorName: instructor.name,
       colorValue: 0xFF1565C0,
+      imageUrl:
+          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97'
+          '?auto=format&fit=crop&w=1200&q=80',
       lessons: [
         Lesson(
           title: 'What is Flutter?',
@@ -166,6 +169,9 @@ class Seeder {
       instructorId: instructor2.id,
       instructorName: instructor2.name,
       colorValue: 0xFF2E7D32,
+      imageUrl:
+          'https://images.unsplash.com/photo-1544383835-bda2bc66a55d'
+          '?auto=format&fit=crop&w=1200&q=80',
       lessons: [
         Lesson(
           title: 'Relational Models',
@@ -205,6 +211,9 @@ class Seeder {
       instructorId: instructor.id,
       instructorName: instructor.name,
       colorValue: 0xFF6A1B9A,
+      imageUrl:
+          'https://images.unsplash.com/photo-1561070791-2526d30994b5'
+          '?auto=format&fit=crop&w=1200&q=80',
       lessons: [
         Lesson(
           title: 'Color & Typography',
