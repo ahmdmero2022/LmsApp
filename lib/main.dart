@@ -21,6 +21,8 @@ class LmsApp extends StatelessWidget {
         title: 'LMS',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
+        darkTheme: buildDarkTheme(),
+        themeMode: ThemeMode.system,
         home: const _AppEntry(),
       ),
     );

@@ -26,6 +26,23 @@ class NotificationsScreen extends StatelessWidget {
     }
   }
 
+  Color _colorFor(NotificationType type) {
+    switch (type) {
+      case NotificationType.enrollment:
+        return const Color(0xFF2E7D32);
+      case NotificationType.newCourse:
+        return const Color(0xFF1565C0);
+      case NotificationType.newLesson:
+        return const Color(0xFF00838F);
+      case NotificationType.progress:
+        return const Color(0xFFEF6C00);
+      case NotificationType.quiz:
+        return const Color(0xFF6A1B9A);
+      case NotificationType.system:
+        return const Color(0xFF546E7A);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
@@ -72,6 +89,9 @@ class NotificationsScreen extends StatelessWidget {
                           .withValues(alpha: 0.4),
                   child: ListTile(
                     leading: CircleAvatar(
+                      backgroundColor:
+                          _colorFor(n.type).withValues(alpha: 0.15),
+                      foregroundColor: _colorFor(n.type),
                       child: Icon(_iconFor(n.type)),
                     ),
                     title: Text(

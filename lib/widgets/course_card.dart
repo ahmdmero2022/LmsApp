@@ -26,25 +26,37 @@ class CourseCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 90,
+              height: 96,
               width: double.infinity,
-              color: color.withValues(alpha: 0.15),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color,
+                    Color.lerp(color, Colors.black, 0.28) ?? color,
+                  ],
+                ),
+              ),
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: color,
-                    child: const Icon(Icons.play_lesson,
-                        color: Colors.white),
+                    backgroundColor: Colors.white.withValues(alpha: 0.25),
+                    child: const Icon(Icons.play_lesson, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      course.category,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w600,
+                      course.category.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        letterSpacing: 0.8,
                       ),
                     ),
                   ),
