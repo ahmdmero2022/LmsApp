@@ -276,6 +276,39 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateLesson(Course course, Lesson lesson) async {
+    final updated = course.copyWith(
+      lessons: [
+        for (final l in course.lessons)
+          if (l.id == lesson.id) lesson else l,
+      ],
+    );
+    await _courses.save(updated);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> deleteLesson(Course course, String lessonId) async {
+    final updated = course.copyWith(
+      lessons: course.lessons.where((l) => l.id != lessonId).toList(),
+    );
+    await _courses.save(updated);
+    // Drop the lesson from any enrollment's completed set so progress stays
+    // correct.
+    for (final e in _allEnrollments.where((e) => e.courseId == course.id)) {
+      if (e.completedLessonIds.contains(lessonId)) {
+        await _enrollments.save(
+          e.copyWith(
+            completedLessonIds:
+                e.completedLessonIds.where((id) => id != lessonId).toList(),
+          ),
+        );
+      }
+    }
+    await _reloadAll();
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------------------
   // Quiz
   // ---------------------------------------------------------------------------
@@ -304,6 +337,18 @@ class AppState extends ChangeNotifier {
           ),
       ]);
     }
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> updateQuizQuestion(Course course, QuizQuestion question) async {
+    final updated = course.copyWith(
+      quiz: [
+        for (final q in course.quiz)
+          if (q.id == question.id) question else q,
+      ],
+    );
+    await _courses.save(updated);
     await _reloadAll();
     notifyListeners();
   }
