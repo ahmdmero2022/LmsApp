@@ -3,6 +3,7 @@ import 'package:sembast/sembast.dart';
 import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/enrollment.dart';
+import '../models/review.dart';
 import '../models/user.dart';
 import 'database.dart';
 
@@ -102,5 +103,26 @@ class NotificationRepository {
         await _db.notifications.record(n.id).put(txn, n.toMap());
       }
     });
+  }
+}
+
+class ReviewRepository {
+  final AppDatabase _db;
+  ReviewRepository(this._db);
+
+  Future<List<Review>> getAll() async {
+    final db = await _db.database;
+    final records = await _db.reviews.find(db);
+    return records.map((r) => Review.fromMap(r.value)).toList();
+  }
+
+  Future<void> save(Review review) async {
+    final db = await _db.database;
+    await _db.reviews.record(review.id).put(db, review.toMap());
+  }
+
+  Future<void> delete(String reviewId) async {
+    final db = await _db.database;
+    await _db.reviews.record(reviewId).delete(db);
   }
 }

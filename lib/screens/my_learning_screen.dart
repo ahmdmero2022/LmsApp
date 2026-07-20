@@ -47,6 +47,8 @@ class MyLearningScreen extends StatelessWidget {
                       if (state.courseById(e.courseId) != null)
                         CourseCard(
                           course: state.courseById(e.courseId)!,
+                          rating: state.averageRating(e.courseId),
+                          ratingCount: state.reviewCount(e.courseId),
                           progress: e.progress(
                             state.courseById(e.courseId)!.lessons.length,
                           ),

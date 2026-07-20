@@ -2,6 +2,7 @@ import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/lesson.dart';
 import '../models/quiz.dart';
+import '../models/review.dart';
 import '../models/user.dart';
 import '../utils/password.dart';
 import 'repositories.dart';
@@ -36,11 +37,13 @@ class Seeder {
   final UserRepository users;
   final CourseRepository courses;
   final NotificationRepository notifications;
+  final ReviewRepository reviews;
 
   Seeder({
     required this.users,
     required this.courses,
     required this.notifications,
+    required this.reviews,
   });
 
   /// Backfills a hashed [kDemoPassword] onto demo accounts that were seeded
@@ -222,6 +225,33 @@ class Seeder {
 
     for (final c in [flutter, databases, design]) {
       await courses.save(c);
+    }
+
+    for (final r in [
+      Review(
+        courseId: flutter.id,
+        studentId: student.id,
+        studentName: student.name,
+        rating: 5,
+        comment: 'Clear, hands-on and beginner-friendly. Loved the widgets '
+            'section.',
+      ),
+      Review(
+        courseId: flutter.id,
+        studentId: 'seed-reviewer-nadia',
+        studentName: 'Nadia Farouk',
+        rating: 4,
+        comment: 'Great intro. Would like more on state management.',
+      ),
+      Review(
+        courseId: databases.id,
+        studentId: 'seed-reviewer-nadia',
+        studentName: 'Nadia Farouk',
+        rating: 4,
+        comment: 'Solid coverage of relational vs NoSQL.',
+      ),
+    ]) {
+      await reviews.save(r);
     }
 
     await notifications.save(

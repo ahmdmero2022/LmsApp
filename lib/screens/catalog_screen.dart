@@ -95,6 +95,8 @@ class _CatalogCard extends StatelessWidget {
     final enrolled = state.isEnrolled(course.id);
     return CourseCard(
       course: course,
+      rating: state.averageRating(course.id),
+      ratingCount: state.reviewCount(course.id),
       trailing: enrolled
           ? Container(
               padding:

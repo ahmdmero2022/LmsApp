@@ -4,8 +4,58 @@ import 'package:lms_app/models/course.dart';
 import 'package:lms_app/models/enrollment.dart';
 import 'package:lms_app/models/lesson.dart';
 import 'package:lms_app/models/quiz.dart';
+import 'package:lms_app/models/review.dart';
 
 void main() {
+  group('Review', () {
+    test('round-trips through a map', () {
+      final review = Review(
+        courseId: 'c1',
+        studentId: 's1',
+        studentName: 'Ali',
+        rating: 4,
+        comment: 'Good course',
+      );
+      final restored = Review.fromMap(review.toMap());
+      expect(restored.id, review.id);
+      expect(restored.courseId, 'c1');
+      expect(restored.studentName, 'Ali');
+      expect(restored.rating, 4);
+      expect(restored.comment, 'Good course');
+    });
+
+    test('copyWith updates rating and comment, keeps identity', () {
+      final review = Review(
+        courseId: 'c1',
+        studentId: 's1',
+        studentName: 'Ali',
+        rating: 3,
+      );
+      final updated = review.copyWith(rating: 5, comment: 'Even better');
+      expect(updated.id, review.id);
+      expect(updated.studentId, 's1');
+      expect(updated.rating, 5);
+      expect(updated.comment, 'Even better');
+    });
+
+    test('average of ratings computes correctly', () {
+      final ratings = [Review(
+            courseId: 'c1',
+            studentId: 'a',
+            studentName: 'A',
+            rating: 5,
+          ), Review(
+            courseId: 'c1',
+            studentId: 'b',
+            studentName: 'B',
+            rating: 4,
+          )];
+      final avg =
+          ratings.fold<int>(0, (acc, r) => acc + r.rating) / ratings.length;
+      expect(avg, 4.5);
+    });
+  });
+
   group('Enrollment progress', () {
     test('is zero with no completed lessons', () {
       final enrollment =

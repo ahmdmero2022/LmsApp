@@ -8,6 +8,7 @@ import '../models/course.dart';
 import '../models/enrollment.dart';
 import '../models/lesson.dart';
 import '../models/quiz.dart';
+import '../models/review.dart';
 import '../models/user.dart';
 import '../utils/password.dart';
 
@@ -18,18 +19,21 @@ class AppState extends ChangeNotifier {
   final CourseRepository _courses;
   final EnrollmentRepository _enrollments;
   final NotificationRepository _notifications;
+  final ReviewRepository _reviews;
 
   AppState({
     UserRepository? users,
     CourseRepository? courses,
     EnrollmentRepository? enrollments,
     NotificationRepository? notifications,
+    ReviewRepository? reviews,
   })  : _users = users ?? UserRepository(AppDatabase.instance),
         _courses = courses ?? CourseRepository(AppDatabase.instance),
         _enrollments =
             enrollments ?? EnrollmentRepository(AppDatabase.instance),
         _notifications =
-            notifications ?? NotificationRepository(AppDatabase.instance);
+            notifications ?? NotificationRepository(AppDatabase.instance),
+        _reviews = reviews ?? ReviewRepository(AppDatabase.instance);
 
   bool _loading = true;
   bool get loading => _loading;
@@ -43,6 +47,7 @@ class AppState extends ChangeNotifier {
   List<Course> _allCourses = [];
   List<Enrollment> _allEnrollments = [];
   List<AppNotification> _allNotifications = [];
+  List<Review> _allReviews = [];
 
   List<AppUser> get allUsers => List.unmodifiable(_allUsers);
   List<Course> get courses => List.unmodifiable(_allCourses);
@@ -54,6 +59,7 @@ class AppState extends ChangeNotifier {
       users: _users,
       courses: _courses,
       notifications: _notifications,
+      reviews: _reviews,
     );
     await seeder.seedIfEmpty();
     await seeder.backfillDemoPasswords();
@@ -67,6 +73,7 @@ class AppState extends ChangeNotifier {
     _allCourses = await _courses.getAll();
     _allEnrollments = await _enrollments.getAll();
     _allNotifications = await _notifications.getAll();
+    _allReviews = await _reviews.getAll();
   }
 
   // ---------------------------------------------------------------------------
@@ -292,6 +299,10 @@ class AppState extends ChangeNotifier {
         in _allEnrollments.where((e) => e.courseId == courseId).toList()) {
       await _enrollments.delete(e.id);
     }
+    for (final r
+        in _allReviews.where((r) => r.courseId == courseId).toList()) {
+      await _reviews.delete(r.id);
+    }
     await _reloadAll();
     notifyListeners();
   }
@@ -436,6 +447,82 @@ class AppState extends ChangeNotifier {
           courseId: course.id,
         ),
     ]);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reviews & ratings
+  // ---------------------------------------------------------------------------
+
+  /// All reviews for [courseId], newest first.
+  List<Review> reviewsForCourse(String courseId) {
+    final list =
+        _allReviews.where((r) => r.courseId == courseId).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  /// The current user's review for [courseId], if any.
+  Review? myReviewFor(String courseId) {
+    final id = _currentUser?.id;
+    if (id == null) return null;
+    for (final r in _allReviews) {
+      if (r.studentId == id && r.courseId == courseId) return r;
+    }
+    return null;
+  }
+
+  int reviewCount(String courseId) =>
+      _allReviews.where((r) => r.courseId == courseId).length;
+
+  /// Average star rating for [courseId], or null when there are no reviews.
+  double? averageRating(String courseId) {
+    final list = _allReviews.where((r) => r.courseId == courseId).toList();
+    if (list.isEmpty) return null;
+    final sum = list.fold<int>(0, (acc, r) => acc + r.rating);
+    return sum / list.length;
+  }
+
+  /// Creates or updates the current student's review for [course]. Only enrolled
+  /// students may review; the instructor is notified.
+  Future<void> saveReview(
+    Course course, {
+    required int rating,
+    String comment = '',
+  }) async {
+    final student = _currentUser;
+    if (student == null || !isEnrolled(course.id)) return;
+    final clamped = rating.clamp(1, 5);
+    final existing = myReviewFor(course.id);
+    final review = existing?.copyWith(
+          rating: clamped,
+          comment: comment.trim(),
+          createdAt: DateTime.now(),
+        ) ??
+        Review(
+          courseId: course.id,
+          studentId: student.id,
+          studentName: student.name,
+          rating: clamped,
+          comment: comment.trim(),
+        );
+    await _reviews.save(review);
+    await _notifications.save(
+      AppNotification(
+        userId: course.instructorId,
+        title: existing == null ? 'New course review' : 'Review updated',
+        body: '${student.name} rated "${course.title}" $clamped/5.',
+        type: NotificationType.review,
+        courseId: course.id,
+      ),
+    );
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  Future<void> deleteReview(String reviewId) async {
+    await _reviews.delete(reviewId);
     await _reloadAll();
     notifyListeners();
   }
