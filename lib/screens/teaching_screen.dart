@@ -61,6 +61,8 @@ class TeachingScreen extends StatelessWidget {
                       CourseCard(
                         course: course,
                         trailing: PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert,
+                              color: Colors.white),
                           onSelected: (v) {
                             if (v == 'delete') {
                               _confirmDelete(context, course);

@@ -96,9 +96,28 @@ class _CatalogCard extends StatelessWidget {
     return CourseCard(
       course: course,
       trailing: enrolled
-          ? const Chip(
-              label: Text('Enrolled'),
-              visualDensity: VisualDensity.compact,
+          ? Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, size: 15, color: Colors.white),
+                  SizedBox(width: 4),
+                  Text(
+                    'Enrolled',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             )
           : null,
       onTap: () => Navigator.of(context).push(

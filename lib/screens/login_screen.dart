@@ -11,33 +11,72 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(Icons.school_rounded, size: 64, color: scheme.primary),
-                const SizedBox(height: 12),
-                Text(
-                  'LMS Learning Platform',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              scheme.primary.withValues(alpha: 0.16),
+              scheme.tertiary.withValues(alpha: 0.10),
+              scheme.surface,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [scheme.primary, scheme.tertiary],
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.primary.withValues(alpha: 0.4),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Courses, progress tracking and notifications',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: scheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 28),
-                const _LoginCard(),
-              ],
+                      child: const Icon(
+                        Icons.school_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'LMS Learning Platform',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Courses, progress tracking and notifications',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 28),
+                  const _LoginCard(),
+                ],
+              ),
             ),
           ),
         ),
@@ -189,13 +228,32 @@ class _LoginCardState extends State<_LoginCard> {
               ),
               const SizedBox(height: 8),
               ...state.allUsers.map(
-                (u) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(child: Text(u.initials)),
-                  title: Text(u.name),
-                  subtitle: Text('${u.email} · ${u.role.label}'),
-                  trailing: const Icon(Icons.login),
-                  onTap: () => state.loginAs(u),
+                (u) => Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Material(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(14),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimaryContainer,
+                        child: Text(u.initials),
+                      ),
+                      title: Text(
+                        u.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text('${u.email} · ${u.role.label}'),
+                      trailing: const Icon(Icons.arrow_forward_rounded),
+                      onTap: () => state.loginAs(u),
+                    ),
+                  ),
                 ),
               ),
             ],

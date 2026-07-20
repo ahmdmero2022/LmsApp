@@ -78,14 +78,23 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Expanded(
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
-              CircleAvatar(child: Icon(icon)),
-              const SizedBox(width: 12),
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: scheme.onPrimaryContainer),
+              ),
+              const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -94,9 +103,12 @@ class _StatCard extends StatelessWidget {
                     style: Theme.of(context)
                         .textTheme
                         .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                  Text(label),
+                  Text(
+                    label,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
                 ],
               ),
             ],
