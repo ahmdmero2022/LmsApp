@@ -3,10 +3,13 @@ import 'package:flutter/foundation.dart';
 import '../data/database.dart';
 import '../data/repositories.dart';
 import '../data/seed.dart';
+import '../models/activity.dart';
+import '../models/analytics.dart';
 import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/discussion.dart';
 import '../models/enrollment.dart';
+import '../models/gamification.dart';
 import '../models/lesson.dart';
 import '../models/lesson_note.dart';
 import '../models/quiz.dart';
@@ -22,6 +25,7 @@ class AppState extends ChangeNotifier {
   final EnrollmentRepository _enrollments;
   final NotificationRepository _notifications;
   final ReviewRepository _reviews;
+  final ActivityRepository _activity;
   final DiscussionRepository _discussions;
   final NoteRepository _notes;
 
@@ -31,6 +35,7 @@ class AppState extends ChangeNotifier {
     EnrollmentRepository? enrollments,
     NotificationRepository? notifications,
     ReviewRepository? reviews,
+    ActivityRepository? activity,
     DiscussionRepository? discussions,
     NoteRepository? notes,
   })  : _users = users ?? UserRepository(AppDatabase.instance),
@@ -40,6 +45,7 @@ class AppState extends ChangeNotifier {
         _notifications =
             notifications ?? NotificationRepository(AppDatabase.instance),
         _reviews = reviews ?? ReviewRepository(AppDatabase.instance),
+        _activity = activity ?? ActivityRepository(AppDatabase.instance),
         _discussions =
             discussions ?? DiscussionRepository(AppDatabase.instance),
         _notes = notes ?? NoteRepository(AppDatabase.instance);
@@ -57,6 +63,7 @@ class AppState extends ChangeNotifier {
   List<Enrollment> _allEnrollments = [];
   List<AppNotification> _allNotifications = [];
   List<Review> _allReviews = [];
+  List<ActivityDay> _allActivity = [];
   List<DiscussionPost> _allDiscussions = [];
   List<LessonNote> _allNotes = [];
 
@@ -85,8 +92,35 @@ class AppState extends ChangeNotifier {
     _allEnrollments = await _enrollments.getAll();
     _allNotifications = await _notifications.getAll();
     _allReviews = await _reviews.getAll();
+    _allActivity = await _activity.getAll();
     _allDiscussions = await _discussions.getAll();
     _allNotes = await _notes.getAll();
+  }
+
+  /// Records that the current user was active today (idempotent per day).
+  Future<void> _recordActivity() async {
+    final user = _currentUser;
+    if (user == null) return;
+    await _activity.save(ActivityDay(userId: user.id, date: DateTime.now()));
+  }
+
+  /// Notifies the current user of any badges newly earned relative to
+  /// [before]. Call after the state change and reload.
+  Future<void> _awardNewBadges(Set<BadgeId> before) async {
+    final user = _currentUser;
+    if (user == null) return;
+    final newly = myGameStats().badges.difference(before);
+    if (newly.isEmpty) return;
+    await _notifications.saveAll([
+      for (final id in newly)
+        AppNotification(
+          userId: user.id,
+          title: 'Badge unlocked: ${badgeDef(id).title} 🏅',
+          body: badgeDef(id).description,
+          type: NotificationType.system,
+        ),
+    ]);
+    await _reloadAll();
   }
 
   // ---------------------------------------------------------------------------
@@ -218,6 +252,7 @@ class AppState extends ChangeNotifier {
         courseId: course.id,
       ),
     );
+    await _recordActivity();
     await _reloadAll();
     notifyListeners();
   }
@@ -233,8 +268,10 @@ class AppState extends ChangeNotifier {
   Future<void> toggleLessonComplete(Course course, Lesson lesson) async {
     final enrollment = enrollmentFor(course.id);
     if (enrollment == null) return;
+    final beforeBadges = myGameStats().badges;
     final completed = List<String>.from(enrollment.completedLessonIds);
     final wasComplete = enrollment.isCompleted(course.lessons.length);
+    final markingComplete = !completed.contains(lesson.id);
     if (completed.contains(lesson.id)) {
       completed.remove(lesson.id);
     } else {
@@ -266,7 +303,9 @@ class AppState extends ChangeNotifier {
         ),
       ]);
     }
+    if (markingComplete) await _recordActivity();
     await _reloadAll();
+    await _awardNewBadges(beforeBadges);
     notifyListeners();
   }
 
@@ -435,6 +474,7 @@ class AppState extends ChangeNotifier {
     final enrollment = enrollmentFor(course.id);
     final student = _currentUser;
     if (enrollment == null || student == null || total == 0) return;
+    final beforeBadges = myGameStats().badges;
     final pct = correct / total * 100;
     final previous = enrollment.quizScore;
     final best = previous == null || pct > previous ? pct : previous;
@@ -460,7 +500,9 @@ class AppState extends ChangeNotifier {
           courseId: course.id,
         ),
     ]);
+    await _recordActivity();
     await _reloadAll();
+    await _awardNewBadges(beforeBadges);
     notifyListeners();
   }
 
@@ -506,6 +548,7 @@ class AppState extends ChangeNotifier {
   }) async {
     final student = _currentUser;
     if (student == null || !isEnrolled(course.id)) return;
+    final beforeBadges = myGameStats().badges;
     final clamped = rating.clamp(1, 5);
     final existing = myReviewFor(course.id);
     final review = existing?.copyWith(
@@ -530,7 +573,9 @@ class AppState extends ChangeNotifier {
         courseId: course.id,
       ),
     );
+    await _recordActivity();
     await _reloadAll();
+    await _awardNewBadges(beforeBadges);
     notifyListeners();
   }
 
@@ -663,6 +708,65 @@ class AppState extends ChangeNotifier {
     }
     await _reloadAll();
     notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Instructor analytics
+  // ---------------------------------------------------------------------------
+
+  /// Teaching metrics for a single [course].
+  CourseStats statsForCourse(Course course) =>
+      computeCourseStats(course, _allEnrollments, _allReviews);
+
+  /// Aggregated metrics across every course the current instructor owns.
+  InstructorStats myTeachingStats() =>
+      computeInstructorStats(myCourses, _allEnrollments, _allReviews);
+
+  // ---------------------------------------------------------------------------
+  // Gamification
+  // ---------------------------------------------------------------------------
+
+  List<DateTime> _activeDaysFor(String userId) => _allActivity
+      .where((a) => a.userId == userId)
+      .map((a) => a.date)
+      .toList();
+
+  /// Points, badges and streak for [userId].
+  UserGameStats gameStatsFor(String userId) => computeUserGameStats(
+        userId: userId,
+        courses: _allCourses,
+        enrollments: _allEnrollments,
+        reviews: _allReviews,
+        activeDays: _activeDaysFor(userId),
+        passMark: quizPassMark,
+      );
+
+  /// Gamification snapshot for the signed-in user (all zeros when signed out).
+  UserGameStats myGameStats() => gameStatsFor(_currentUser?.id ?? '');
+
+  /// All students ranked by points (ties broken by name).
+  List<LeaderboardEntry> leaderboard() {
+    final entries = [
+      for (final u in _allUsers.where((u) => u.role == UserRole.student))
+        _entryFor(u),
+    ];
+    entries.sort((a, b) {
+      final byPoints = b.points.compareTo(a.points);
+      return byPoints != 0 ? byPoints : a.name.compareTo(b.name);
+    });
+    return entries;
+  }
+
+  LeaderboardEntry _entryFor(AppUser user) {
+    final s = gameStatsFor(user.id);
+    return LeaderboardEntry(
+      userId: user.id,
+      name: user.name,
+      points: s.points,
+      coursesCompleted: s.coursesCompleted,
+      streak: s.streak,
+      badgeCount: s.badges.length,
+    );
   }
 
   // ---------------------------------------------------------------------------

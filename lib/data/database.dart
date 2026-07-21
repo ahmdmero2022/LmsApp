@@ -21,6 +21,8 @@ class AppDatabase {
       stringMapStoreFactory.store('notifications');
   final StoreRef<String, Map<String, Object?>> reviews =
       stringMapStoreFactory.store('reviews');
+  final StoreRef<String, Map<String, Object?>> activity =
+      stringMapStoreFactory.store('activity');
   final StoreRef<String, Map<String, Object?>> discussions =
       stringMapStoreFactory.store('discussions');
   final StoreRef<String, Map<String, Object?>> notes =

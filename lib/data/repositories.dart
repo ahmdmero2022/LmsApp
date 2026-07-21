@@ -1,5 +1,6 @@
 import 'package:sembast/sembast.dart';
 
+import '../models/activity.dart';
 import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/discussion.dart';
@@ -183,5 +184,22 @@ class NoteRepository {
   Future<void> delete(String noteId) async {
     final db = await _db.database;
     await _db.notes.record(noteId).delete(db);
+  }
+}
+
+class ActivityRepository {
+  final AppDatabase _db;
+  ActivityRepository(this._db);
+
+  Future<List<ActivityDay>> getAll() async {
+    final db = await _db.database;
+    final records = await _db.activity.find(db);
+    return records.map((r) => ActivityDay.fromMap(r.value)).toList();
+  }
+
+  /// Idempotent: keyed by user + day so re-recording the same day is a no-op.
+  Future<void> save(ActivityDay day) async {
+    final db = await _db.database;
+    await _db.activity.record(day.id).put(db, day.toMap());
   }
 }
