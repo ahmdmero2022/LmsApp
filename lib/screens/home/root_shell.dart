@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../state/app_state.dart';
-import 'catalog_screen.dart';
-import 'my_learning_screen.dart';
-import 'notifications_screen.dart';
-import 'profile_screen.dart';
-import 'teaching_screen.dart';
+import '../../state/app_state.dart';
+import '../catalog/catalog_screen.dart';
+import '../learning/my_learning_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../profile/profile_screen.dart';
+import '../teaching/teaching_screen.dart';
 
 class _NavDest {
   final String label;

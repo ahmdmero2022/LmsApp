@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../models/app_notification.dart';
-import '../state/app_state.dart';
-import 'course_detail_screen.dart';
+import '../../models/app_notification.dart';
+import '../../state/app_state.dart';
+import '../catalog/course_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
