@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_state.dart';
 import '../catalog/catalog_screen.dart';
 import '../learning/my_learning_screen.dart';
@@ -13,7 +14,14 @@ class _NavDest {
   final IconData icon;
   final IconData selectedIcon;
   final Widget screen;
-  const _NavDest(this.label, this.icon, this.selectedIcon, this.screen);
+  final bool isNotifications;
+  const _NavDest(
+    this.label,
+    this.icon,
+    this.selectedIcon,
+    this.screen, {
+    this.isNotifications = false,
+  });
 }
 
 class RootShell extends StatefulWidget {
@@ -29,38 +37,40 @@ class _RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context);
     final destinations = <_NavDest>[
-      const _NavDest(
-        'Catalog',
+      _NavDest(
+        l10n.navCatalog,
         Icons.explore_outlined,
         Icons.explore,
-        CatalogScreen(),
+        const CatalogScreen(),
       ),
       if (state.isInstructor)
-        const _NavDest(
-          'Teaching',
+        _NavDest(
+          l10n.navTeaching,
           Icons.co_present_outlined,
           Icons.co_present,
-          TeachingScreen(),
+          const TeachingScreen(),
         )
       else
-        const _NavDest(
-          'My Learning',
+        _NavDest(
+          l10n.navMyLearning,
           Icons.menu_book_outlined,
           Icons.menu_book,
-          MyLearningScreen(),
+          const MyLearningScreen(),
         ),
       _NavDest(
-        'Notifications',
+        l10n.navNotifications,
         Icons.notifications_outlined,
         Icons.notifications,
         const NotificationsScreen(),
+        isNotifications: true,
       ),
-      const _NavDest(
-        'Profile',
+      _NavDest(
+        l10n.navProfile,
         Icons.person_outline,
         Icons.person,
-        ProfileScreen(),
+        const ProfileScreen(),
       ),
     ];
 
@@ -99,10 +109,10 @@ class _RootShellState extends State<RootShell> {
               destinations: [
                 for (final d in destinations)
                   NavigationRailDestination(
-                    icon: d.label == 'Notifications'
+                    icon: d.isNotifications
                         ? notifIcon(d.icon)
                         : Icon(d.icon),
-                    selectedIcon: d.label == 'Notifications'
+                    selectedIcon: d.isNotifications
                         ? notifIcon(d.selectedIcon)
                         : Icon(d.selectedIcon),
                     label: Text(d.label),
@@ -124,10 +134,10 @@ class _RootShellState extends State<RootShell> {
         destinations: [
           for (final d in destinations)
             NavigationDestination(
-              icon: d.label == 'Notifications'
+              icon: d.isNotifications
                   ? notifIcon(d.icon)
                   : Icon(d.icon),
-              selectedIcon: d.label == 'Notifications'
+              selectedIcon: d.isNotifications
                   ? notifIcon(d.selectedIcon)
                   : Icon(d.selectedIcon),
               label: d.label,

@@ -27,6 +27,8 @@ class AppDatabase {
       stringMapStoreFactory.store('discussions');
   final StoreRef<String, Map<String, Object?>> notes =
       stringMapStoreFactory.store('notes');
+  final StoreRef<String, Map<String, Object?>> settings =
+      stringMapStoreFactory.store('settings');
 
   Future<Database> get database async {
     return _db ??= await databaseFactoryWeb.openDatabase(_dbName);

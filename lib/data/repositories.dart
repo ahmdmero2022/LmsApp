@@ -203,3 +203,28 @@ class ActivityRepository {
     await _db.activity.record(day.id).put(db, day.toMap());
   }
 }
+
+/// Persists small app-wide preferences (e.g. selected language) as a single
+/// key/value record.
+class SettingsRepository {
+  static const String _key = 'app';
+
+  final AppDatabase _db;
+  SettingsRepository(this._db);
+
+  Future<String?> getString(String field) async {
+    final db = await _db.database;
+    final record = await _db.settings.record(_key).get(db);
+    final value = record?[field];
+    return value is String ? value : null;
+  }
+
+  Future<void> setString(String field, String? value) async {
+    final db = await _db.database;
+    if (value == null) {
+      await _db.settings.record(_key).update(db, {field: FieldValue.delete});
+    } else {
+      await _db.settings.record(_key).put(db, {field: value}, merge: true);
+    }
+  }
+}
