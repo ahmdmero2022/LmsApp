@@ -24,40 +24,35 @@ String courseImageUrl(Course course) {
 }
 
 /// Picks a default cover image URL from free-text [keywords].
+///
+/// Matches on word tokens (prefix, not arbitrary substring) so short keywords
+/// don't false-match: e.g. "art" must not match "started"/"smart", "api" must
+/// not match "capital", "app" must not match "happen".
 String defaultCourseImage(String keywords) {
-  final k = keywords.toLowerCase();
-  if (k.contains('mobile') ||
-      k.contains('flutter') ||
-      k.contains('app') ||
-      k.contains('android') ||
-      k.contains('ios')) {
+  final tokens = keywords
+      .toLowerCase()
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((t) => t.isNotEmpty);
+
+  bool has(List<String> stems) =>
+      tokens.any((t) => stems.any((s) => t.startsWith(s)));
+
+  if (has(['mobile', 'flutter', 'app', 'android', 'ios'])) {
     return _topicImages['mobile']!;
   }
-  if (k.contains('database') || k.contains('sql') || k.contains('data')) {
+  if (has(['data', 'sql'])) {
     return _topicImages['data']!;
   }
-  if (k.contains('backend') ||
-      k.contains('server') ||
-      k.contains('api') ||
-      k.contains('cloud')) {
+  if (has(['backend', 'server', 'api', 'cloud'])) {
     return _topicImages['backend']!;
   }
-  if (k.contains('design') ||
-      k.contains('ui') ||
-      k.contains('ux') ||
-      k.contains('art')) {
+  if (has(['design', 'ui', 'ux', 'art'])) {
     return _topicImages['design']!;
   }
-  if (k.contains('web') ||
-      k.contains('program') ||
-      k.contains('code') ||
-      k.contains('develop') ||
-      k.contains('software')) {
+  if (has(['web', 'program', 'code', 'coding', 'develop', 'software'])) {
     return _topicImages['code']!;
   }
-  if (k.contains('business') ||
-      k.contains('market') ||
-      k.contains('finance')) {
+  if (has(['business', 'market', 'financ'])) {
     return _topicImages['business']!;
   }
   return _topicImages['default']!;
