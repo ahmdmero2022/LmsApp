@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'screens/login_screen.dart';
-import 'screens/root_shell.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/home/root_shell.dart';
 import 'state/app_state.dart';
 import 'theme.dart';
 

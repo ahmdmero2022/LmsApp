@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/course.dart';
-import '../state/app_state.dart';
-import '../widgets/course_card.dart';
+import '../../models/course.dart';
+import '../../state/app_state.dart';
+import '../../widgets/course_card.dart';
 import 'course_detail_screen.dart';
 
 class CatalogScreen extends StatefulWidget {

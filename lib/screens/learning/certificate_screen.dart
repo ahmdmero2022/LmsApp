@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../state/app_state.dart';
-import '../utils/certificate_export.dart';
+import '../../state/app_state.dart';
+import '../../utils/certificate_export.dart';
 
 /// Full-screen certificate shown once a student completes every lesson in a
 /// course. Offers a "Print / Save as PDF" action on the web.

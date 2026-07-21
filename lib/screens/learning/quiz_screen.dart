@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/course.dart';
-import '../models/quiz.dart';
-import '../state/app_state.dart';
+import '../../models/course.dart';
+import '../../models/quiz.dart';
+import '../../state/app_state.dart';
 
 /// Lets an enrolled student answer a course's multiple-choice quiz, then grades
 /// it and records the score.
