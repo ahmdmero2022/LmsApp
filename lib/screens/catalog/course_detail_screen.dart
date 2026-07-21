@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/course.dart';
 import '../../state/app_state.dart';
 import '../../utils/course_images.dart';
 import '../learning/certificate_screen.dart';
