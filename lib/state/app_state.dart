@@ -7,9 +7,11 @@ import '../models/activity.dart';
 import '../models/analytics.dart';
 import '../models/app_notification.dart';
 import '../models/course.dart';
+import '../models/discussion.dart';
 import '../models/enrollment.dart';
 import '../models/gamification.dart';
 import '../models/lesson.dart';
+import '../models/lesson_note.dart';
 import '../models/quiz.dart';
 import '../models/review.dart';
 import '../models/user.dart';
@@ -24,6 +26,8 @@ class AppState extends ChangeNotifier {
   final NotificationRepository _notifications;
   final ReviewRepository _reviews;
   final ActivityRepository _activity;
+  final DiscussionRepository _discussions;
+  final NoteRepository _notes;
 
   AppState({
     UserRepository? users,
@@ -32,6 +36,8 @@ class AppState extends ChangeNotifier {
     NotificationRepository? notifications,
     ReviewRepository? reviews,
     ActivityRepository? activity,
+    DiscussionRepository? discussions,
+    NoteRepository? notes,
   })  : _users = users ?? UserRepository(AppDatabase.instance),
         _courses = courses ?? CourseRepository(AppDatabase.instance),
         _enrollments =
@@ -39,7 +45,10 @@ class AppState extends ChangeNotifier {
         _notifications =
             notifications ?? NotificationRepository(AppDatabase.instance),
         _reviews = reviews ?? ReviewRepository(AppDatabase.instance),
-        _activity = activity ?? ActivityRepository(AppDatabase.instance);
+        _activity = activity ?? ActivityRepository(AppDatabase.instance),
+        _discussions =
+            discussions ?? DiscussionRepository(AppDatabase.instance),
+        _notes = notes ?? NoteRepository(AppDatabase.instance);
 
   bool _loading = true;
   bool get loading => _loading;
@@ -55,6 +64,8 @@ class AppState extends ChangeNotifier {
   List<AppNotification> _allNotifications = [];
   List<Review> _allReviews = [];
   List<ActivityDay> _allActivity = [];
+  List<DiscussionPost> _allDiscussions = [];
+  List<LessonNote> _allNotes = [];
 
   List<AppUser> get allUsers => List.unmodifiable(_allUsers);
   List<Course> get courses => List.unmodifiable(_allCourses);
@@ -82,6 +93,8 @@ class AppState extends ChangeNotifier {
     _allNotifications = await _notifications.getAll();
     _allReviews = await _reviews.getAll();
     _allActivity = await _activity.getAll();
+    _allDiscussions = await _discussions.getAll();
+    _allNotes = await _notes.getAll();
   }
 
   /// Records that the current user was active today (idempotent per day).
@@ -568,6 +581,131 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteReview(String reviewId) async {
     await _reviews.delete(reviewId);
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Discussion / Q&A
+  // ---------------------------------------------------------------------------
+
+  /// Question threads for [courseId], oldest question first, each with its
+  /// replies in chronological order.
+  List<DiscussionThread> discussionThreads(String courseId) =>
+      buildThreads(_allDiscussions, courseId);
+
+  int discussionCount(String courseId) =>
+      _allDiscussions.where((p) => p.courseId == courseId).length;
+
+  /// Posts a question or a reply. Only enrolled students or the course owner
+  /// may post. Notifies relevant participants.
+  Future<void> postDiscussion(
+    Course course, {
+    required String message,
+    String? parentId,
+  }) async {
+    final user = _currentUser;
+    final text = message.trim();
+    if (user == null || text.isEmpty) return;
+    final isOwner = course.instructorId == user.id;
+    if (!isOwner && !isEnrolled(course.id)) return;
+
+    await _discussions.save(
+      DiscussionPost(
+        courseId: course.id,
+        authorId: user.id,
+        authorName: user.name,
+        message: text,
+        parentId: parentId,
+      ),
+    );
+
+    final recipients = <String>{};
+    if (parentId == null) {
+      // A new question notifies the instructor (unless they asked it).
+      if (!isOwner) recipients.add(course.instructorId);
+    } else {
+      // A reply notifies the question's author and the instructor.
+      final parent = _allDiscussions.firstWhere(
+        (p) => p.id == parentId,
+        orElse: () => DiscussionPost(
+          courseId: course.id,
+          authorId: course.instructorId,
+          authorName: '',
+          message: '',
+        ),
+      );
+      recipients.add(parent.authorId);
+      recipients.add(course.instructorId);
+    }
+    recipients.remove(user.id);
+    if (recipients.isNotEmpty) {
+      await _notifications.saveAll([
+        for (final uid in recipients)
+          AppNotification(
+            userId: uid,
+            title: parentId == null
+                ? 'New question in "${course.title}"'
+                : 'New reply in "${course.title}"',
+            body: '${user.name}: $text',
+            type: NotificationType.system,
+            courseId: course.id,
+          ),
+      ]);
+    }
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  /// Deletes a post. Questions remove their replies too. Only the author or the
+  /// course owner may delete.
+  Future<void> deleteDiscussion(Course course, DiscussionPost post) async {
+    final user = _currentUser;
+    if (user == null) return;
+    final canDelete =
+        post.authorId == user.id || course.instructorId == user.id;
+    if (!canDelete) return;
+    if (post.isReply) {
+      await _discussions.delete(post.id);
+    } else {
+      await _discussions.deleteThread(post.id);
+    }
+    await _reloadAll();
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Lesson notes (private per user)
+  // ---------------------------------------------------------------------------
+
+  LessonNote? noteFor(String lessonId) {
+    final id = _currentUser?.id;
+    if (id == null) return null;
+    final key = LessonNote.key(id, lessonId);
+    for (final n in _allNotes) {
+      if (n.id == key) return n;
+    }
+    return null;
+  }
+
+  /// Upserts the current user's note for a lesson; an empty text deletes it.
+  Future<void> saveNote(Course course, Lesson lesson, String text) async {
+    final user = _currentUser;
+    if (user == null) return;
+    final trimmed = text.trim();
+    final key = LessonNote.key(user.id, lesson.id);
+    if (trimmed.isEmpty) {
+      await _notes.delete(key);
+    } else {
+      await _notes.save(
+        LessonNote(
+          userId: user.id,
+          courseId: course.id,
+          lessonId: lesson.id,
+          text: trimmed,
+        ),
+      );
+    }
     await _reloadAll();
     notifyListeners();
   }

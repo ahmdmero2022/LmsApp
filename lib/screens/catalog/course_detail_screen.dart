@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
 import '../../utils/course_images.dart';
 import '../learning/certificate_screen.dart';
+import 'course_detail/discussion_section.dart';
 import 'course_detail/lesson_section.dart';
 import 'course_detail/quiz_section.dart';
 import 'course_detail/reviews_section.dart';
@@ -181,6 +182,12 @@ class CourseDetailScreen extends StatelessWidget {
             enrolled: enrolled,
             isOwner: isOwner,
             bestScore: enrollment?.quizScore,
+          ),
+          const SizedBox(height: 24),
+          DiscussionSection(
+            course: course,
+            enrolled: enrolled,
+            isOwner: isOwner,
           ),
           const SizedBox(height: 24),
           ReviewsSection(
