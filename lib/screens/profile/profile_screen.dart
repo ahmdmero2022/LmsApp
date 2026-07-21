@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/user.dart';
 import '../../state/app_state.dart';
+import '../achievements/achievements_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -105,6 +106,30 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (user.role == UserRole.student) ...[
+            const SizedBox(height: 16),
+            Builder(
+              builder: (context) {
+                final game = state.myGameStats();
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.emoji_events_outlined),
+                    title: const Text('Achievements'),
+                    subtitle: Text(
+                      '${game.points} pts · ${game.badges.length} badges · '
+                      '${game.streak}-day streak',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AchievementsScreen(),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
           const SizedBox(height: 16),
           Card(
             child: ListTile(
