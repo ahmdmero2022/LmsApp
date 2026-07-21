@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../data/database.dart';
 import '../data/repositories.dart';
@@ -28,6 +28,7 @@ class AppState extends ChangeNotifier {
   final ActivityRepository _activity;
   final DiscussionRepository _discussions;
   final NoteRepository _notes;
+  final SettingsRepository _settings;
 
   AppState({
     UserRepository? users,
@@ -38,6 +39,7 @@ class AppState extends ChangeNotifier {
     ActivityRepository? activity,
     DiscussionRepository? discussions,
     NoteRepository? notes,
+    SettingsRepository? settings,
   })  : _users = users ?? UserRepository(AppDatabase.instance),
         _courses = courses ?? CourseRepository(AppDatabase.instance),
         _enrollments =
@@ -48,7 +50,10 @@ class AppState extends ChangeNotifier {
         _activity = activity ?? ActivityRepository(AppDatabase.instance),
         _discussions =
             discussions ?? DiscussionRepository(AppDatabase.instance),
-        _notes = notes ?? NoteRepository(AppDatabase.instance);
+        _notes = notes ?? NoteRepository(AppDatabase.instance),
+        _settings = settings ?? SettingsRepository(AppDatabase.instance);
+
+  static const String _localeSettingKey = 'localeCode';
 
   bool _loading = true;
   bool get loading => _loading;
@@ -67,6 +72,11 @@ class AppState extends ChangeNotifier {
   List<DiscussionPost> _allDiscussions = [];
   List<LessonNote> _allNotes = [];
 
+  Locale? _locale;
+
+  /// The user-selected UI locale, or null to follow the device setting.
+  Locale? get locale => _locale;
+
   List<AppUser> get allUsers => List.unmodifiable(_allUsers);
   List<Course> get courses => List.unmodifiable(_allCourses);
 
@@ -81,8 +91,17 @@ class AppState extends ChangeNotifier {
     );
     await seeder.seedIfEmpty();
     await seeder.backfillDemoPasswords();
+    final code = await _settings.getString(_localeSettingKey);
+    _locale = code == null ? null : Locale(code);
     await _reloadAll();
     _loading = false;
+    notifyListeners();
+  }
+
+  /// Sets the active locale (null follows the device) and persists the choice.
+  Future<void> setLocale(Locale? locale) async {
+    _locale = locale;
+    await _settings.setString(_localeSettingKey, locale?.languageCode);
     notifyListeners();
   }
 

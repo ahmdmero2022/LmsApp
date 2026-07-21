@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/app_notification.dart';
 import '../../state/app_state.dart';
 import '../catalog/course_detail_screen.dart';
@@ -50,16 +51,17 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context);
     final notifications = state.myNotifications;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(l10n.notifications),
         actions: [
           if (state.unreadCount > 0)
             TextButton(
               onPressed: state.markAllNotificationsRead,
-              child: const Text('Mark all read'),
+              child: Text(l10n.t('markAllRead')),
             ),
         ],
       ),
@@ -74,7 +76,7 @@ class NotificationsScreen extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(height: 12),
-                  const Text('No notifications yet.'),
+                  Text(l10n.noNotifications),
                 ],
               ),
             )

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/seed.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/user.dart';
 import '../../state/app_state.dart';
 
@@ -11,6 +12,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -62,7 +64,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'LMS Learning Platform',
+                    l10n.appTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
@@ -70,11 +72,13 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Courses, progress tracking and notifications',
+                    l10n.appTagline,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 12),
+                  const Center(child: _LanguageMenuButton()),
+                  const SizedBox(height: 16),
                   const _LoginCard(),
                 ],
               ),
@@ -169,6 +173,7 @@ class _LoginCardState extends State<_LoginCard> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -176,9 +181,9 @@ class _LoginCardState extends State<_LoginCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Sign in')),
-                ButtonSegment(value: true, label: Text('Sign up')),
+              segments: [
+                ButtonSegment(value: false, label: Text(l10n.signIn)),
+                ButtonSegment(value: true, label: Text(l10n.signUp)),
               ],
               selected: {_registerMode},
               onSelectionChanged: (s) =>
@@ -188,9 +193,9 @@ class _LoginCardState extends State<_LoginCard> {
             if (_registerMode) ...[
               TextField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Full name',
-                  prefixIcon: Icon(Icons.person_outline),
+                decoration: InputDecoration(
+                  labelText: l10n.t('fullName'),
+                  prefixIcon: const Icon(Icons.person_outline),
                 ),
               ),
               const SizedBox(height: 12),
@@ -198,9 +203,9 @@ class _LoginCardState extends State<_LoginCard> {
             TextField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
+              decoration: InputDecoration(
+                labelText: l10n.email,
+                prefixIcon: const Icon(Icons.email_outlined),
               ),
               onSubmitted: (_) => _submit(),
             ),
@@ -209,7 +214,7 @@ class _LoginCardState extends State<_LoginCard> {
               controller: _passwordCtrl,
               obscureText: _obscure,
               decoration: InputDecoration(
-                labelText: 'Password',
+                labelText: l10n.password,
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -225,24 +230,24 @@ class _LoginCardState extends State<_LoginCard> {
               TextField(
                 controller: _confirmCtrl,
                 obscureText: _obscure,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm password',
-                  prefixIcon: Icon(Icons.lock_outline),
+                decoration: InputDecoration(
+                  labelText: l10n.t('confirmPassword'),
+                  prefixIcon: const Icon(Icons.lock_outline),
                 ),
                 onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 12),
               SegmentedButton<UserRole>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: UserRole.student,
-                    label: Text('Student'),
-                    icon: Icon(Icons.menu_book),
+                    label: Text(l10n.student),
+                    icon: const Icon(Icons.menu_book),
                   ),
                   ButtonSegment(
                     value: UserRole.instructor,
-                    label: Text('Instructor'),
-                    icon: Icon(Icons.co_present),
+                    label: Text(l10n.instructor),
+                    icon: const Icon(Icons.co_present),
                   ),
                 ],
                 selected: {_role},
@@ -259,17 +264,17 @@ class _LoginCardState extends State<_LoginCard> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : _submit,
-              child: Text(_registerMode ? 'Create account' : 'Sign in'),
+              child: Text(_registerMode ? l10n.t('createAccount') : l10n.signIn),
             ),
             if (!_registerMode) ...[
               const Divider(height: 32),
               Text(
-                'Demo accounts',
+                l10n.demoAccounts,
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 4),
               Text(
-                'One-tap sign in, or use password "$kDemoPassword".',
+                '${l10n.t('oneTapHint')} "$kDemoPassword".',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 12,
@@ -308,6 +313,37 @@ class _LoginCardState extends State<_LoginCard> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A compact language picker shown on the login screen so the UI language can
+/// be changed before signing in.
+class _LanguageMenuButton extends StatelessWidget {
+  const _LanguageMenuButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context);
+    final label = state.locale == null
+        ? l10n.systemDefault
+        : AppLocalizations.languageName(state.locale!.languageCode);
+    return PopupMenuButton<String>(
+      onSelected: (value) =>
+          state.setLocale(value == 'system' ? null : Locale(value)),
+      itemBuilder: (context) => [
+        PopupMenuItem(value: 'system', child: Text(l10n.systemDefault)),
+        for (final locale in AppLocalizations.supportedLocales)
+          PopupMenuItem(
+            value: locale.languageCode,
+            child: Text(AppLocalizations.languageName(locale.languageCode)),
+          ),
+      ],
+      child: Chip(
+        avatar: const Icon(Icons.translate, size: 18),
+        label: Text(label),
       ),
     );
   }

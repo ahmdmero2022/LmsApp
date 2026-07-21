@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/course.dart';
 import '../../state/app_state.dart';
 import '../../widgets/course_card.dart';
@@ -20,6 +21,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context);
     final all = state.courses;
     final categories = <String>{
       'All',
@@ -36,15 +38,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Course Catalog'),
+        title: Text(l10n.catalog),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
-            decoration: const InputDecoration(
-              hintText: 'Search courses...',
-              prefixIcon: Icon(Icons.search),
+            decoration: InputDecoration(
+              hintText: l10n.searchCourses,
+              prefixIcon: const Icon(Icons.search),
             ),
             onChanged: (v) => setState(() => _query = v),
           ),
@@ -56,9 +58,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
               children: [
                 for (final cat in categories)
                   Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsetsDirectional.only(end: 8),
                     child: ChoiceChip(
-                      label: Text(cat),
+                      label: Text(cat == 'All' ? l10n.allCategories : cat),
                       selected: _category == cat,
                       onSelected: (_) => setState(() => _category = cat),
                     ),
@@ -68,9 +70,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ),
           const SizedBox(height: 16),
           if (filtered.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 64),
-              child: Center(child: Text('No courses match your search.')),
+            Padding(
+              padding: const EdgeInsets.only(top: 64),
+              child: Center(child: Text(l10n.t('noCoursesMatch'))),
             )
           else
             CourseGrid(

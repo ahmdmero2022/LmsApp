@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/user.dart';
 import '../../state/app_state.dart';
 import '../achievements/achievements_screen.dart';
@@ -11,6 +12,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context);
     final user = state.currentUser;
     if (user == null) return const SizedBox.shrink();
 
@@ -18,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
     final teachingCount = state.myCourses.length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.profile)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -88,19 +90,19 @@ class ProfileScreen extends StatelessWidget {
                 if (user.role == UserRole.instructor)
                   ListTile(
                     leading: const Icon(Icons.library_books),
-                    title: const Text('Courses taught'),
+                    title: Text(l10n.coursesTaught),
                     trailing: Text('$teachingCount'),
                   )
                 else
                   ListTile(
                     leading: const Icon(Icons.menu_book),
-                    title: const Text('Courses enrolled'),
+                    title: Text(l10n.coursesEnrolled),
                     trailing: Text('$enrolledCount'),
                   ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.notifications),
-                  title: const Text('Unread notifications'),
+                  title: Text(l10n.unreadNotifications),
                   trailing: Text('${state.unreadCount}'),
                 ),
               ],
@@ -114,7 +116,7 @@ class ProfileScreen extends StatelessWidget {
                 return Card(
                   child: ListTile(
                     leading: const Icon(Icons.emoji_events_outlined),
-                    title: const Text('Achievements'),
+                    title: Text(l10n.achievements),
                     subtitle: Text(
                       '${game.points} pts · ${game.badges.length} badges · '
                       '${game.streak}-day streak',
@@ -133,8 +135,22 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Card(
             child: ListTile(
+              leading: const Icon(Icons.translate),
+              title: Text(l10n.language),
+              subtitle: Text(
+                state.locale == null
+                    ? l10n.systemDefault
+                    : AppLocalizations.languageName(state.locale!.languageCode),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showLanguageSheet(context, state),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
               leading: const Icon(Icons.lock_outline),
-              title: const Text('Change password'),
+              title: Text(l10n.changePassword),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => showDialog<void>(
                 context: context,
@@ -146,10 +162,50 @@ class ProfileScreen extends StatelessWidget {
           FilledButton.tonalIcon(
             onPressed: state.logout,
             icon: const Icon(Icons.logout),
-            label: const Text('Sign out'),
+            label: Text(l10n.signOut),
           ),
         ],
       ),
+    );
+  }
+
+  void _showLanguageSheet(BuildContext context, AppState state) {
+    final l10n = AppLocalizations.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        Widget option(String title, Locale? locale, bool selected) => ListTile(
+              title: Text(title),
+              trailing: selected ? const Icon(Icons.check) : null,
+              onTap: () {
+                state.setLocale(locale);
+                Navigator.of(sheetContext).pop();
+              },
+            );
+        final current = state.locale?.languageCode;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  l10n.language,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              option(l10n.systemDefault, null, state.locale == null),
+              for (final locale in AppLocalizations.supportedLocales)
+                option(
+                  AppLocalizations.languageName(locale.languageCode),
+                  locale,
+                  current == locale.languageCode,
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 }
