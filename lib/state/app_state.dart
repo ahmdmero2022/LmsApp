@@ -4,6 +4,7 @@ import '../data/database.dart';
 import '../data/repositories.dart';
 import '../data/seed.dart';
 import '../models/activity.dart';
+import '../models/analytics.dart';
 import '../models/app_notification.dart';
 import '../models/course.dart';
 import '../models/enrollment.dart';
@@ -570,6 +571,18 @@ class AppState extends ChangeNotifier {
     await _reloadAll();
     notifyListeners();
   }
+
+  // ---------------------------------------------------------------------------
+  // Instructor analytics
+  // ---------------------------------------------------------------------------
+
+  /// Teaching metrics for a single [course].
+  CourseStats statsForCourse(Course course) =>
+      computeCourseStats(course, _allEnrollments, _allReviews);
+
+  /// Aggregated metrics across every course the current instructor owns.
+  InstructorStats myTeachingStats() =>
+      computeInstructorStats(myCourses, _allEnrollments, _allReviews);
 
   // ---------------------------------------------------------------------------
   // Gamification
