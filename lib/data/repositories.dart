@@ -2,7 +2,9 @@ import 'package:sembast/sembast.dart';
 
 import '../models/app_notification.dart';
 import '../models/course.dart';
+import '../models/discussion.dart';
 import '../models/enrollment.dart';
+import '../models/lesson_note.dart';
 import '../models/review.dart';
 import '../models/user.dart';
 import 'database.dart';
@@ -124,5 +126,62 @@ class ReviewRepository {
   Future<void> delete(String reviewId) async {
     final db = await _db.database;
     await _db.reviews.record(reviewId).delete(db);
+  }
+}
+
+class DiscussionRepository {
+  final AppDatabase _db;
+  DiscussionRepository(this._db);
+
+  Future<List<DiscussionPost>> getAll() async {
+    final db = await _db.database;
+    final records = await _db.discussions.find(db);
+    return records.map((r) => DiscussionPost.fromMap(r.value)).toList();
+  }
+
+  Future<void> save(DiscussionPost post) async {
+    final db = await _db.database;
+    await _db.discussions.record(post.id).put(db, post.toMap());
+  }
+
+  Future<void> delete(String postId) async {
+    final db = await _db.database;
+    await _db.discussions.record(postId).delete(db);
+  }
+
+  /// Removes a question and all of its replies in one transaction.
+  Future<void> deleteThread(String questionId) async {
+    final db = await _db.database;
+    await db.transaction((txn) async {
+      await _db.discussions.record(questionId).delete(txn);
+      final replies = await _db.discussions.find(
+        txn,
+        finder: Finder(filter: Filter.equals('parentId', questionId)),
+      );
+      for (final r in replies) {
+        await _db.discussions.record(r.key).delete(txn);
+      }
+    });
+  }
+}
+
+class NoteRepository {
+  final AppDatabase _db;
+  NoteRepository(this._db);
+
+  Future<List<LessonNote>> getAll() async {
+    final db = await _db.database;
+    final records = await _db.notes.find(db);
+    return records.map((r) => LessonNote.fromMap(r.value)).toList();
+  }
+
+  Future<void> save(LessonNote note) async {
+    final db = await _db.database;
+    await _db.notes.record(note.id).put(db, note.toMap());
+  }
+
+  Future<void> delete(String noteId) async {
+    final db = await _db.database;
+    await _db.notes.record(noteId).delete(db);
   }
 }

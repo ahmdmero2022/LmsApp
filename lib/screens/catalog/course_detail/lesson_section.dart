@@ -242,6 +242,8 @@ class LessonTile extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            LessonNotes(course: course, lesson: lesson),
           ],
         ],
       ),
@@ -277,5 +279,99 @@ class LessonTile extends StatelessWidget {
     if (ok == true) {
       await state.deleteLesson(course, lesson.id);
     }
+  }
+}
+
+/// Private, per-user free-text notes for a lesson. Saved on demand and only
+/// visible to the current learner.
+class LessonNotes extends StatefulWidget {
+  final Course course;
+  final Lesson lesson;
+
+  const LessonNotes({super.key, required this.course, required this.lesson});
+
+  @override
+  State<LessonNotes> createState() => _LessonNotesState();
+}
+
+class _LessonNotesState extends State<LessonNotes> {
+  late final TextEditingController _controller;
+  String _saved = '';
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final note = context.read<AppState>().noteFor(widget.lesson.id);
+    _saved = note?.text ?? '';
+    _controller = TextEditingController(text: _saved);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    final text = _controller.text;
+    await context
+        .read<AppState>()
+        .saveNote(widget.course, widget.lesson, text);
+    if (!mounted) return;
+    setState(() {
+      _saved = text.trim();
+      _busy = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_saved.isEmpty ? 'Note cleared.' : 'Note saved.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dirty = _controller.text.trim() != _saved;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.sticky_note_2_outlined, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'My notes',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _controller,
+          minLines: 2,
+          maxLines: 5,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(
+            hintText: 'Jot down a private note for this lesson…',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: (_busy || !dirty) ? null : _save,
+            icon: const Icon(Icons.save_outlined, size: 18),
+            label: const Text('Save note'),
+          ),
+        ),
+      ],
+    );
   }
 }
