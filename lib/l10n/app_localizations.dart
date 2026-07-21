@@ -66,6 +66,11 @@ class AppLocalizations {
   String get signOut => t('signOut');
   String get language => t('language');
   String get systemDefault => t('systemDefault');
+  String get settings => t('settings');
+  String get appearance => t('appearance');
+  String get themeSystem => t('themeSystem');
+  String get themeLight => t('themeLight');
+  String get themeDark => t('themeDark');
 
   // Catalog / notifications
   String get catalog => t('catalog');
@@ -109,6 +114,11 @@ class AppLocalizations {
       'signOut': 'Sign out',
       'language': 'Language',
       'systemDefault': 'System default',
+      'settings': 'Settings',
+      'appearance': 'Appearance',
+      'themeSystem': 'System',
+      'themeLight': 'Light',
+      'themeDark': 'Dark',
       'catalog': 'Course Catalog',
       'searchCourses': 'Search courses...',
       'allCategories': 'All',
@@ -149,6 +159,11 @@ class AppLocalizations {
       'signOut': 'تسجيل الخروج',
       'language': 'اللغة',
       'systemDefault': 'لغة النظام',
+      'settings': 'الإعدادات',
+      'appearance': 'المظهر',
+      'themeSystem': 'حسب النظام',
+      'themeLight': 'فاتح',
+      'themeDark': 'داكن',
       'catalog': 'دليل الدورات',
       'searchCourses': 'ابحث عن الدورات...',
       'allCategories': 'الكل',
