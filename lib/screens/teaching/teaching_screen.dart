@@ -5,6 +5,7 @@ import '../../models/course.dart';
 import '../../state/app_state.dart';
 import '../../widgets/course_card.dart';
 import '../catalog/course_detail_screen.dart';
+import 'analytics_screen.dart';
 
 const _courseColors = <int>[
   0xFF1565C0,
@@ -24,7 +25,18 @@ class TeachingScreen extends StatelessWidget {
     final myCourses = state.myCourses;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Teaching')),
+      appBar: AppBar(
+        title: const Text('Teaching'),
+        actions: [
+          IconButton(
+            tooltip: 'Analytics',
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createCourse(context),
         icon: const Icon(Icons.add),
