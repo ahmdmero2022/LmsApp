@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/user.dart';
 import '../../state/app_state.dart';
 import '../achievements/achievements_screen.dart';
+import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -135,15 +136,13 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.translate),
-              title: Text(l10n.language),
-              subtitle: Text(
-                state.locale == null
-                    ? l10n.systemDefault
-                    : AppLocalizations.languageName(state.locale!.languageCode),
-              ),
+              leading: const Icon(Icons.settings_outlined),
+              title: Text(l10n.settings),
+              subtitle: Text('${l10n.appearance} · ${l10n.language}'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showLanguageSheet(context, state),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -166,46 +165,6 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showLanguageSheet(BuildContext context, AppState state) {
-    final l10n = AppLocalizations.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (sheetContext) {
-        Widget option(String title, Locale? locale, bool selected) => ListTile(
-              title: Text(title),
-              trailing: selected ? const Icon(Icons.check) : null,
-              onTap: () {
-                state.setLocale(locale);
-                Navigator.of(sheetContext).pop();
-              },
-            );
-        final current = state.locale?.languageCode;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  l10n.language,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              option(l10n.systemDefault, null, state.locale == null),
-              for (final locale in AppLocalizations.supportedLocales)
-                option(
-                  AppLocalizations.languageName(locale.languageCode),
-                  locale,
-                  current == locale.languageCode,
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
     );
   }
 }

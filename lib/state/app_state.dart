@@ -54,6 +54,7 @@ class AppState extends ChangeNotifier {
         _settings = settings ?? SettingsRepository(AppDatabase.instance);
 
   static const String _localeSettingKey = 'localeCode';
+  static const String _themeSettingKey = 'themeMode';
 
   bool _loading = true;
   bool get loading => _loading;
@@ -77,6 +78,11 @@ class AppState extends ChangeNotifier {
   /// The user-selected UI locale, or null to follow the device setting.
   Locale? get locale => _locale;
 
+  ThemeMode _themeMode = ThemeMode.system;
+
+  /// The active theme mode (system / light / dark).
+  ThemeMode get themeMode => _themeMode;
+
   List<AppUser> get allUsers => List.unmodifiable(_allUsers);
   List<Course> get courses => List.unmodifiable(_allCourses);
 
@@ -93,6 +99,9 @@ class AppState extends ChangeNotifier {
     await seeder.backfillDemoPasswords();
     final code = await _settings.getString(_localeSettingKey);
     _locale = code == null ? null : Locale(code);
+    _themeMode = _themeModeFromString(
+      await _settings.getString(_themeSettingKey),
+    );
     await _reloadAll();
     _loading = false;
     notifyListeners();
@@ -103,6 +112,24 @@ class AppState extends ChangeNotifier {
     _locale = locale;
     await _settings.setString(_localeSettingKey, locale?.languageCode);
     notifyListeners();
+  }
+
+  /// Sets the active theme mode and persists the choice.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    await _settings.setString(_themeSettingKey, mode.name);
+    notifyListeners();
+  }
+
+  static ThemeMode _themeModeFromString(String? value) {
+    switch (value) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
   }
 
   Future<void> _reloadAll() async {

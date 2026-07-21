@@ -25,7 +25,7 @@ class LmsApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(),
           darkTheme: buildDarkTheme(),
-          themeMode: ThemeMode.system,
+          themeMode: state.themeMode,
           locale: state.locale,
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const [
